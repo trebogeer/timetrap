@@ -30,7 +30,6 @@ func (this *MainController) Get() {
 
 func (this *TTController) GraphData() {
 	//&tback=1200&x=lp&label=PRI&labelName=repl&d3=true&labelNameAdd=h&simplify=true&keepPoints=800
-	//query := r.URL.Query()
 	db := this.GetString("db")
 	c := this.GetString("c")
 	x := this.GetString("x")
@@ -42,7 +41,7 @@ func (this *TTController) GraphData() {
 	if err != nil {
 		tback = tback_c
 	}
-	labelName := this.GetString("labelName")
+/*	labelName := this.GetString("labelName")
 	aLabel := this.GetString("alabel")
 	simplify, err := this.GetBool("simplify")
     if err != nil {
@@ -52,7 +51,7 @@ func (this *TTController) GraphData() {
 	log.Println(tback)
 	log.Println(aLabel)
 	log.Println(simplify)
-
+*/
 	keepPoints, err := this.GetInt("keepPoints")
 	if err != nil {
 		keepPoints = keep_p
@@ -70,7 +69,6 @@ func (this *TTController) GraphData() {
         this.Abort("500")
 	}
 
-    log.Printf("FOUND DATA: %v", collections)
 
 	dur, _ := time.ParseDuration("-1000h")
 	err, data := mongo.GetGraphData(db, collections[0], x, y, time.Now().Add(dur), time.Now(), []string{labelName})
@@ -79,13 +77,8 @@ func (this *TTController) GraphData() {
 		this.Abort("500")
 	}
 
-    log.Printf("FOUND DATA: %v", data)
-	//enc := json.NewEncoder(w)
-	//if err = enc.Encode(data); err != nil {
-	//	beego.Error(err)
-    //    this.Abort("500")
-	//}
     this.Data["json"] = data
     this.ServeJson()
 
 }
+
