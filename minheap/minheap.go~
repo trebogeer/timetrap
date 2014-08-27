@@ -43,7 +43,7 @@ func (heap *MinHeap) Push(e HeapEntry) {
 
 func (heap *MinHeap) Pop() (error, HeapEntry) {
        if heap.Size == 0 {
-         return errors.New("Min Heap is empty"), HeapEntry{}
+         return errors.New("Min Heap is empty"), nil
        }
    // fmt.Printf("Heap.Size = %v\n", heap.Size)
    // fmt.Printf("Array.len = %v\n", len(heap.Array))

@@ -1,41 +1,42 @@
 package mongo
 
 import (
-    "os"
-    "log"
-    "time"
-    "regexp"
     "errors"
-  //env "github.com/kelseyhightower/envconfig"
-    cnv "strconv"
+    "log"
+    "os"
+    "regexp"
+    "time"
+    "reflect"
+    //env "github.com/kelseyhightower/envconfig"
     mgo "gopkg.in/mgo.v2"
     bson "gopkg.in/mgo.v2/bson"
+    cnv "strconv"
 )
 
 var (
     masterSession session
-    secs_per_doc = 60
-    zero_host = "0000000000000000"
-    Empty_Graph = make(map[string]Points)
+    secs_per_doc  = 60
+    zero_host     = "0000000000000000"
+    Empty_Graph   = make(map[string]Points)
 )
 
 type (
     session struct {
-      dialInfo *mgo.DialInfo
-      ms       *mgo.Session
+        dialInfo *mgo.DialInfo
+        ms       *mgo.Session
     }
 
-/*  mconf struct {
-      Host   string
-      Port   string
-      User   string
-      Pass   string
-      AuthDB string
+    /*  mconf struct {
+        Host   string
+        Port   string
+        User   string
+        Pass   string
+        AuthDB string
     }
-*/
+    */
 )
 
-type XY []float32
+type XY []float64
 type Points []XY
 
 func Init(host, port, authdb, user, password string) error {
@@ -44,30 +45,28 @@ func Init(host, port, authdb, user, password string) error {
         return nil
     }
 
-    mgo.SetDebug(true)
+//    mgo.SetDebug(true)
 
     var aLogger *log.Logger
     aLogger = log.New(os.Stderr, "", log.LstdFlags)
     mgo.SetLogger(aLogger)
 
     dialInfo := &mgo.DialInfo{
-        Addrs: []string{host + ":" + port},
-        Source: authdb,
+        Addrs:    []string{host + ":" + port},
+        Source:   authdb,
         Username: user,
         Password: password,
     }
-
-
 
     ms, err := mgo.DialWithInfo(dialInfo)
     if err != nil {
         return err
     }
-//    defer Client.Close()
+    //    defer Client.Close()
 
     ms.SetMode(mgo.Monotonic, true)
-    ms.EnsureSafe(&mgo.Safe{W:0, FSync:false})
-    ms.SetBatch(200)
+    ms.EnsureSafe(&mgo.Safe{W: 0, FSync: false})
+    ms.SetBatch(1000)
     ms.SetPrefetch(0.25)
 
     masterSession = session{dialInfo, ms}
@@ -76,6 +75,12 @@ func Init(host, port, authdb, user, password string) error {
     return nil
 }
 
+func Shutdown() {
+    if masterSession.ms != nil {
+        masterSession.ms.Close()
+    }
+    log.Println("MGO master session shutdown is complete.")
+}
 
 func GetGraphData(db, c, x, y string, from, to time.Time, labels []string) (error, map[string]Points) {
     //TODO validate input
@@ -85,15 +90,14 @@ func GetGraphData(db, c, x, y string, from, to time.Time, labels []string) (erro
     proj := bson.M{}
     for i := 0; i < secs_per_doc; i++ {
         sec_pref := cnv.Itoa(i) + "."
-        proj[sec_pref + y] = 1
-        proj[sec_pref + x] = 1
+        proj[sec_pref+y] = 1
+        proj[sec_pref+x] = 1
         for a := range labels {
-            proj[sec_pref + labels[a]] = 1
+            proj[sec_pref+labels[a]] = 1
         }
     }
 
-    query := bson.M{"_id":bson.M{"$gte":objId(from)},"$lt":objId(to)}
-
+    query := bson.M{"_id": bson.M{"$gte": objId(from), "$lt": objId(to)}}
 
     s := masterSession.ms.Copy()
     coll := s.DB(db).C(c)
@@ -104,36 +108,50 @@ func GetGraphData(db, c, x, y string, from, to time.Time, labels []string) (erro
     entry := bson.M{}
 
     for cur.Next(&entry) {
-        xx, x_ok := entry[x].(float32)
-        yy, y_ok := entry[y].(float32)
-        if x_ok && y_ok {
-            point := XY{xx, yy}
-            labelStr := ""
-            for i := range labels {
-                label, ok := entry[labels[i]].(string)
-                if !ok {
-                    continue
-                }
-                if len(label) > 0 {
-                    labelStr = labelStr + ":" + label
-                }
-            }
-            if len(labelStr) > 0 {
-                if val, ok := res[labelStr];ok {
-                    n := len(val)
-                    if cap(val) == n {
-                        res[labelStr] = make(Points, n, 2*n+1)
-                        copy(res[labelStr], val)
+       //og.Printf("ENTRY: %v", entry)
+        for s:= 0; s < secs_per_doc; s++ {
+            sec_prefix := cnv.Itoa(s);
+            if pref, pok := entry[sec_prefix];pok {
+            //    log.Printf("PREF: %v", pref)
+            sec_e := pref.(bson.M)
+            t := reflect.TypeOf(sec_e[x])
+            log.Printf("TYPE_X : %v", t)
+            t = reflect.TypeOf(sec_e[y])
+            log.Printf("TYPE_Y : %v", t)
+            xx, x_ok := sec_e[x].(time.Time)
+            yy, y_ok := sec_e[y].(float64)
+            if x_ok && y_ok {
+                log.Printf("FOUND X_Y")
+                ts_ms =: float64(xx.UnixNano()/1000)
+                point := XY{ts_ms, yy}
+                labelStr := c
+                /*for i := range labels {
+                    label, ok := entry[labels[i]].(string)
+                    if !ok {
+                        continue
                     }
-                    res[labelStr] = res[labelStr][0:n+1]
-                    res[labelStr][n] = point
+                    if len(label) > 0 {
+                        labelStr = labelStr + ":" + label
+                    }
+                }*/
+                if len(labelStr) > 0 {
+                    if val, ok := res[labelStr]; ok {
+                        n := len(val)
+                        if cap(val) == n {
+                            res[labelStr] = make(Points, n, 2*n+1)
+                            copy(res[labelStr], val)
+                        }
+                        res[labelStr] = res[labelStr][0 : n+1]
+                        res[labelStr][n] = point
 
-                } else {
-                    res[labelStr] = make(Points, 100, 200)
-                    res[labelStr][0] = point
+                    } else {
+                        res[labelStr] = make(Points, 100, 200)
+                        res[labelStr][0] = point
+                    }
                 }
-            }
 
+            }
+        }
         }
     }
 
@@ -149,7 +167,7 @@ func GetKV(db, c, k string) string {
     coll := s.DB(db).C(c)
     defer s.Close()
     res := bson.M{}
-    err := coll.Find(bson.M{"_id":k}).Select(bson.M{"_id":1}).One(&res)
+    err := coll.Find(bson.M{"_id": k}).Select(bson.M{"_id": 1}).One(&res)
     if err != nil {
         log.Printf("Error retrieving value by key [%v].\n", k)
         log.Println(err.Error())
@@ -194,7 +212,6 @@ func GetFilteredCollections(dbName, reStr string) (error, []string) {
     }
 }
 
-
 //TODO will need to round up for upper bound
 func objId(t time.Time) string {
     nt := t.Truncate(time.Minute)
@@ -202,4 +219,3 @@ func objId(t time.Time) string {
     dt_hex := cnv.FormatInt(nt_sec, 16)
     return dt_hex + zero_host
 }
-

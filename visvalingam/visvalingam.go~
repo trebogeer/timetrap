@@ -5,7 +5,7 @@ import (
     "math"
     "errors"
     "sort"
-    mh "io.dimav/timetrap/timetrap/minheap"
+    mh "github.com/trebogeer/timetrap/minheap"
     //    "container/list"
 )
 

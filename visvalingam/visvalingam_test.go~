@@ -51,12 +51,20 @@ func TestVisvalingamCC(t *testing.T) {
       t.Error(err.Error())
     }
 
+    if r[0].X != 4 {
+      t.Error("Point has wrong value for X")
+    }
+
     p = []Point{{3, 5}, {2, 6}}
 
     err, r = Visvalingam(2, p)
 
     if err != nil {
       t.Error(err.Error())
+    }
+
+    if len(r) != 2 {
+      t.Error("Incorrect simplification. Result array size is incorrect.")
     }
 
 }
