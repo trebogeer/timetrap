@@ -11,7 +11,7 @@ import (
 func main() {
     runtime.GOMAXPROCS(runtime.NumCPU())
 	mongo.Init("greenapi301p.dev.ch3.s.com", "20000", "admin", "midori", "midori")
-    beego.HttpPort = 8081
+    beego.HttpPort = 6060
     beego.RunMode = "prod"
 	beego.Run()
 }

@@ -18,7 +18,7 @@ type (
 )
 
 const (
-	tback_c = 600
+	tback_c = "600s"
 	keep_p  = 1200
 )
 
@@ -37,12 +37,12 @@ func (this *TTController) GraphData() {
 		x = "ts"
 	}
 	y := this.GetString("y")
-	tback, err := this.GetInt("tback")
-	if err != nil {
+	tback := this.GetString("tback")
+	if len(tback) == 0 {
 		tback = tback_c
 	}
-/*	labelName := this.GetString("labelName")
-	aLabel := this.GetString("alabel")
+	labelName := this.GetString("labelName")
+/*	aLabel := this.GetString("alabel")
 	simplify, err := this.GetBool("simplify")
     if err != nil {
       simplify = false
@@ -70,15 +70,84 @@ func (this *TTController) GraphData() {
 	}
 
 
-	dur, _ := time.ParseDuration("-1000h")
-	err, data := mongo.GetGraphData(db, collections[0], x, y, time.Now().Add(dur), time.Now(), []string{labelName})
-	if err != nil {
+	dur, err := time.ParseDuration("-"+ tback)
+    if err != nil {
+        dur,_ = time.ParseDuration("-" + tback_c)
+    }
+	data := getGraphData(db, x, y, collections, []string{labelName}, time.Now().Add(dur), time.Now())
+	/*if err != nil {
 		beego.Error(err)
 		this.Abort("500")
-	}
+	}*/
 
     this.Data["json"] = data
     this.ServeJson()
 
 }
+
+
+func getGraphData(db, x, y string, collections , labels []string, from, to time.Time) map[string]mongo.Points {
+    dur, _ := time.ParseDuration("1h")
+
+
+    c_len:= len(collections)
+    res_channel := make (chan map[string]mongo.Points, 100)
+    for i:= 0; i < c_len; i++ {
+       go func(c string) {
+          t_chan := make(chan map[string]mongo.Points, 1000)
+          t := from
+          ch_cnt := 0
+          for t.Before(to) {
+             tt := min(t.Add(dur), to)
+             ch_cnt++
+             go func(c string, f, t time.Time) {
+                err, data := mongo.GetGraphData(db, c, x, y , f, t, labels)
+                if err != nil {
+                    log.Println(err)
+                    t_chan <- make(map[string]mongo.Points)
+                } else {
+                    // TODO visvalingam
+                    t_chan <- data
+                }
+
+             }(c, t, tt)
+             t = tt
+          }
+          res := make(map[string]mongo.Points)
+          mergeMaps(&res, &t_chan, ch_cnt)
+          res_channel <- res
+       }(collections[i])
+    }
+    f_res := make(map[string]mongo.Points)
+    mergeMaps(&f_res, &res_channel, c_len)
+    return f_res
+}
+
+
+func mergeMaps(m *map[string]mongo.Points, ch *chan map[string]mongo.Points, ch_cnt int) {
+    mm := *m
+
+    for i:= 0; i < ch_cnt; i++ {
+        m_ := <-*ch
+        for k,v := range m_ {
+           if val, ok := mm[k]; ok {
+             mm[k] = append(val, v...)
+           } else {
+             mm[k] = v
+           }
+        }
+    }
+}
+
+func min(a, b time.Time) time.Time {
+  if a.Before(b) {
+   return a
+  } else {
+    return b
+  }
+}
+
+
+
+
 
