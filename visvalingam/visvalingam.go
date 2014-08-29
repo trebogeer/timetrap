@@ -107,7 +107,6 @@ func Visvalingam(toKeep int, points []Point) (error, []Point) {
 	if toKeep == 2 {
 		return nil, append(points[0:1], points[points_len-1])
 	}
-
 	keepPoints := toKeep - 2
 
 	tl := mh.MinHeap{make([]mh.HeapEntry, points_len), 0}
@@ -158,7 +157,7 @@ func Visvalingam(toKeep int, points []Point) (error, []Point) {
 		t := tr_res[i].(Triangle)
 		res[i+1] = t.Point
 	}
-	res[tl.Size-1] = points[points_len-1]
+	res[tl.Size + 1] = points[points_len-1]
 	sort.Sort(ByX(res))
 	return nil, res
 

@@ -7,5 +7,5 @@ import (
 
 func init() {
 	beego.Router("/", &controllers.MainController{})
-    beego.Router("/data.json", new(controllers.TTController), "get:GraphData")
+	beego.Router("/data.json", new(controllers.TTController), "get:GraphData")
 }
