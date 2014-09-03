@@ -203,3 +203,15 @@ func objId(t time.Time) string {
 	dt_hex := cnv.FormatInt(nt_sec, 16)
 	return dt_hex + zero_host
 }
+
+func (p Points) Len() int {
+	return len(p)
+}
+
+func (p Points) Swap(i, j int) {
+	p[i], p[j] = p[j], p[i]
+}
+
+func (p Points) Less(i, j int) bool {
+	return p[i][0].(int) < p[j][0].(int)
+}

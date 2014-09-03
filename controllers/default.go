@@ -3,7 +3,7 @@ package controllers
 import (
 	"log"
 	"time"
-	//    "sort"
+	"sort"
 	"github.com/astaxie/beego"
 	"github.com/trebogeer/timetrap/mongo"
 	"github.com/trebogeer/timetrap/visvalingam"
@@ -80,8 +80,18 @@ func (this *TTController) GraphData() {
 		beego.Error(err)
 		this.Abort("500")
 	}*/
-
-	this.Data["json"] = data
+    d := make(map[string]interface{})
+    dd := make([]interface{}, 0, len(data))
+    d["alias"] = "lp"
+    for k,v := range data {
+       m := make(map[string]interface{})
+       m["key"] = k
+       sort.Sort(v)
+       m["values"] = v
+       dd = append(dd, m)
+    }
+    d["data"] = dd
+	this.Data["json"] = d
 	this.ServeJson()
 
 }
