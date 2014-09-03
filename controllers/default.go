@@ -25,8 +25,8 @@ const (
 )
 
 func (this *MainController) Get() {
-	this.Data["Website"] = "beego.me"
-	this.Data["Email"] = "astaxie@gmail.com"
+	this.Data["Website"] = "timetrap.io"
+	this.Data["Email"] = "trebogeer@gmail.com"
 	this.TplNames = "index.tpl"
 }
 
