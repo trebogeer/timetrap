@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>Time Trap</title>
+
+<link href="css/nvd3/nv.d3.min.css" rel="stylesheet" type="text/css">
+<link href="css/face.css" rel="stylesheet" type="text/css">
+<link href="css/bootstrap.css" rel="stylesheet" type="text/css">
+
+<style>
+
+    body {
+    overflow-y:scroll;
+    padding-top:43px;
+    }
+
+    body > .container {
+    width: 941px;
+    }
+
+    @media(min-width: 1400px){
+    body > .container {
+    width: 1400px;
+    }
+    }
+
+    @media(min-width: 1200px){
+    body > .container {
+    width: 1200px;
+    }
+    }
+
+    @media (max-width: 979px) and (min-width: 768px) {
+    body > .container {
+    width: 725px;
+    }
+    }
+
+    text {
+    font: 12px sans-serif;
+    }
+
+    svg {
+    display: block;
+    }
+
+    #chart1 svg {
+    height: 500px;
+    min-width: 100px;
+    min-height: 100px;
+    /*
+    margin: 50px;
+    Minimum height and width is a good idea to prevent negative SVG dimensions...
+    For example width should be =< margin.left + margin.right + 1,
+    of course 1 pixel for the entire chart would not be very useful, BUT should not have errors
+    */
+    }
+
+</style>
+<body>
+<div>
+    <nav role="navigation">
+        <div class="navbar navbar-inverse navbar-fixed-top">
+            <div class="navbar-inner">
+                <div class="container">
+                    <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </a>
+                    <a class="brand" href="/index.html">TimeTrap</a>
+
+                    <div class="nav-collapse">
+                        <ul class="nav">
+                            <li class="active"><a href="#"><i class="icon-white icon-home"></i> Home</a></li>
+                            <li><a href="#"><i class="icon-white icon-picture"></i> Dash</a></li>
+                            <li><a href="#"><i class="icon-white icon-play-circle"></i> Alerts</a>
+                            </li>
+                        </ul>
+                        <ul class="nav pull-right">
+                            <li><p class="navbar-text"><i class="icon-white icon-download"></i> Info: </p></li>
+                            <li>
+                                <div class="btn-group">
+                                    <a class="btn btn-small btn-primary"
+                                       href="#">Help</a>
+                                    <a class="btn btn-small btn-primary"
+                                       href="#">About</a>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+</div>
+<div class="container">
+    <span id="gtitle">&nbsp;</span>
+</div>
+<!--<div id="header-d3" class="d3-layout">-->
+<!--<h6 id="gtitle">TIMETRAP</h6>-->
+<!--</div>-->
+<div id="p-content" class="container with-3d-shadow with-transitions">
+    <div id="chart" class='with-3d-shadow with-transitions'>
+        <svg style="height: 500px;"></svg>
+    </div>
+    <div class="d3-layout">
+        <p>
+        <table>
+            <tr>
+                <td>
+                    <button class="fetchSeries" id="refbutton">Refresh</button>
+                </td>
+                <td><input type="checkbox" id="autorefresh" class="dataUpdate">Auto Referesh</input></td>
+                <td>[ <a id="durl"
+                         href="../data.json?db=midori&c=greendb401p.prod.ch4.s.com.*&tback=6000h&x=ts&y=lp&labelName=h">see
+                    data</a> ]
+                </td>
+                <td>Interpolate:
+                    <select id="interpolate-selector" style="width:115px">
+                        <option value="">None</option>
+                        <option value="linear">Linear</option>
+                        <option value="linear-closed">Linear Closed</option>
+                        <option value="step-before">Step Before</option>
+                        <option value="step-after">Step After</option>
+                        <option value="basis">Basis</option>
+                        <option value="basis-open">Basis Open</option>
+                        <option value="basis-closed">Basis Closed</option>
+                        <option value="bundle">Bundle</option>
+                        <option value="cardinal">Cardinal</option>
+                        <option value="cardinal-open">Cardinal Open</option>
+                        <option value="cardinal-closed">Cardinal Closed</option>
+                        <option value="monotone">Monotone</option>
+                    </select>
+                </td>
+            </tr>
+        </table>
+        </p>
+    </div>
+</div>
+<div id="footer">
+
+</div>
+
+<script src="js/d3/d3.v3.js"></script>
+<script src="js/d3/nv.d3.js"></script>
+<script src="js/bootstrap.js"></script>
+<script src="js/midori.js"></script>
+<!--<script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>-->
+<script>!window.jQuery && document.write(unescape('%3Cscript src="./js/jquery.js"%3E%3C/script%3E'))</script>
+<script>
+
+(function($) {
+    $.QueryString = (function(a) {
+        if (a == "") return {};
+        var b = {};
+        for (var i = 0; i < a.length; ++i)
+        {
+            var p=a[i].split('=');
+            if (p.length != 2) continue;
+            b[p[0]] = decodeURIComponent(p[1].replace(/\+/g, " "));
+        }
+        return b;
+    })(window.location.search.substr(1).split('&'))
+    })(jQuery);
+
+var dataLink = "";
+
+(function($) {
+var queryString = window.location.search.substr(1);
+
+var duri = "../data.json?";
+
+var q ="db=midori&c=greendb401p.prod.ch4.s.com.*&tback=6000h&x=ts&y=lp&labelName=h";
+
+if (queryString == null || queryString == "") {
+    dataLink = duri + q;
+    d3.select("#durl").attr('href', dataLink);
+} else {
+    dataLink = duri + queryString;
+    d3.select("#durl").attr('href', dataLink);
+}
+
+})(jQuery);
+
+nv.addGraph(function() {
+
+  Chart.init(d3, nv, $.QueryString);
+
+  Chart.render(dataLink);
+
+  d3.select("#refbutton").on('click', function(){
+   Chart.chart.transitionDuration(0)
+   Chart.render(dataLink);
+  });
+
+   $("#autorefresh").click(function () {
+
+	function fetchData() {
+        if($("#autorefresh").attr("checked")) {
+            Chart.chart.transitionDuration(0);
+            Chart.render(dataLink);
+	        setTimeout(fetchData, 3000);
+	    } else {
+	        Chart.chart.transitionDuration(250);
+	    }
+	}
+
+	setTimeout(fetchData, 3000);
+});
+
+  return chart;
+});
+
+function getTimeZone() {
+    return /\((.*)\)/.exec(new Date().toString())[1];
+}
+
+$("#footer").append("Timezone: " + getTimeZone());
+
+d3.select("#interpolate-selector").on("change", Chart.interpolate);
+
+
+</script>
+</body>

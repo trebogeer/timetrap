@@ -67,6 +67,7 @@ func (this *TTController) GraphData() {
 
 	err, collections := mongo.GetFilteredCollections(db, c)
 	if err != nil {
+        log.Println("Failed to get filtered collections")
 		beego.Error(err)
 		this.Abort("500")
 	}
@@ -99,8 +100,13 @@ func (this *TTController) GraphData() {
 func getGraphData(db, x, y string, collections, labels []string, from, to time.Time, to_keep int64) map[string]mongo.Points {
     t_diff := to.Sub(from)
 	dur, _ := time.ParseDuration("6h")
-    slices := t_diff/dur
-    keep_per_slice := to_keep/int64(slices)
+    var keep_per_slice int64
+    if t_diff > dur {
+       slices := t_diff/dur
+       keep_per_slice = to_keep/int64(slices)
+    } else {
+        keep_per_slice = to_keep
+    }
 
 	c_len := len(collections)
 	res_channel := make(chan map[string]mongo.Points, 100)

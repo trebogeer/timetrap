@@ -1,7 +1,7 @@
 package visvalingam
 
 import (
-	//    "fmt"
+	"fmt"
 	"errors"
 	mh "github.com/trebogeer/timetrap/minheap"
 	"math"
@@ -65,8 +65,8 @@ func (t Triangle) SetIndex(i int) {
 	t.ind = i
 }
 
-func (t Triangle) TArea() float64 {
-	area := area(t)
+func (t *Triangle) TArea() float64 {
+	area := area(*t)
 	t.Area = area
 	return area
 }
@@ -75,7 +75,7 @@ func area(t Triangle) float64 {
 	a := t.Prev
 	b := t.Point
 	c := t.Next
-	return math.Abs((a.X*(b.Y-c.Y) + b.X*(c.Y-a.Y) + c.X*(a.Y-b.Y)) / 2)
+	return math.Abs((a.X*(b.Y-c.Y) + b.X*(c.Y-a.Y) + c.X*(a.Y-b.Y)) / 2.0)
 }
 
 func Visvalingam(toKeep int, points []Point) (error, []Point) {
@@ -117,8 +117,8 @@ func Visvalingam(toKeep int, points []Point) (error, []Point) {
 		t.Prev = points[i-1]
 		t.Point = points[i]
 		t.Next = points[i+1]
-		area := t.TArea()
-		if area > 0 {
+		t.Area = area(t)
+		if t.Area > 0 {
 			tl.Push(t)
 			if tt != nil {
 				tt.NextT = &t
@@ -128,15 +128,16 @@ func Visvalingam(toKeep int, points []Point) (error, []Point) {
 		}
 		tt = &t
 	}
-
+    cnt := 0
 	if keepPoints < tl.Size {
 		for tl.Size > keepPoints {
 			err, e := tl.Pop()
 			if err != nil {
 				break
 			}
+            cnt++
 			t := e.(Triangle)
-
+            fmt.Printf("%v POP: %v\n",cnt, t.Area)
 			if t.PrevT != nil {
 				t.PrevT.NextT = t.NextT
 				t.PrevT.Next = t.Next
