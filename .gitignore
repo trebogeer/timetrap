@@ -24,3 +24,8 @@ _testmain.go
 
 *.go~
 timetrap
+
+agents/mstats/midori
+agents/mstats/mstat
+agents/mstats/test
+agents/mstats/mstat2
