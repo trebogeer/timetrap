@@ -6,7 +6,7 @@ import (
 	"sort"
 	"github.com/astaxie/beego"
 	"github.com/trebogeer/timetrap/mongo"
-	"github.com/trebogeer/timetrap/visvalingam"
+	"github.com/trebogeer/timetrap/simplify"
 )
 
 type (
@@ -127,12 +127,12 @@ func getGraphData(db, x, y string, collections, labels []string, from, to time.T
 						for k, v := range data {
 							//sort.Sort(v)
 							l := len(v)
-							vis := make([]visvalingam.Point, l)
+							vis := make([]simplify.Point, l)
 							for s := 0; s < l; s++ {
-								vis[s] = visvalingam.Point{float64(v[s][0].(int64)), v[s][1].(float64)}
+								vis[s] = simplify.Point{float64(v[s][0].(int64)), v[s][1].(float64)}
 							}
 
-							err, viss := visvalingam.Visvalingam(int(keep_per_slice), vis)
+							err, viss := simplify.Visvalingam(int(keep_per_slice), vis)
 							if err != nil {
 								viss = vis
 								log.Println("failed to simplify line.")
@@ -144,13 +144,11 @@ func getGraphData(db, x, y string, collections, labels []string, from, to time.T
                                 x := int(viss[v].X)
                                 y := float32(viss[v].Y)
 								vv[v] = mongo.XY{x, y}
-   //                             log.Printf("I: %v, X: %v, Y: %v", v, x, y)
 							}
 
 							data[k] = vv
 
 						}
-						// TODO visvalingam
 						t_chan <- data
 					}
 
