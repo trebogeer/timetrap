@@ -23,6 +23,9 @@ _testmain.go
 *.test
 
 *.go~
+*.html~
+*.js~
+*.css~
 timetrap
 
 agents/mstats/midori
