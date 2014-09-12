@@ -38,6 +38,7 @@ type (
 
 type XY []interface{}
 type Points []XY
+type round_time func(t time.Time) time.Time
 
 func Init(host, port, authdb, user, password string) error {
 
@@ -97,7 +98,7 @@ func GetGraphData(db, c, x, y string, from, to time.Time, labels []string) (erro
 		}
 	}
 
-	query := bson.M{"_id": bson.M{"$gte": objId(from), "$lt": objId(to)}}
+	query := bson.M{"_id": bson.M{"$gte": objId(from, t_rup_min), "$lt": objId(to, t_rdown_min)}}
 
 	s := masterSession.ms.Copy()
 	coll := s.DB(db).C(c)
@@ -197,11 +198,19 @@ func GetFilteredCollections(dbName, reStr string) (error, []string) {
 }
 
 //TODO will need to round up for upper bound
-func objId(t time.Time) string {
-	nt := t.Truncate(time.Minute)
+func objId(t time.Time, f round_time) string {
+	nt := f(t)
 	nt_sec := nt.Unix()
 	dt_hex := cnv.FormatInt(nt_sec, 16)
 	return dt_hex + zero_host
+}
+
+func t_rup_min(t time.Time) time.Time {
+    return t.Add(time.Minute).Truncate(time.Minute)
+}
+
+func t_rdown_min(t time.Time) time.Time {
+    return t.Truncate(time.Minute)
 }
 
 func (p Points) Len() int {
