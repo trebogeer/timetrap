@@ -162,7 +162,41 @@ func getGraphData(db, x, y string, collections, labels []string, from, to time.T
 	}
 	f_res := make(map[string]mongo.Points)
 	mergeMaps(&f_res, &res_channel, c_len)
+
+    f_millis := from.UnixNano() / int64(time.Millisecond)
+    t_millis := to.UnixNano() / int64(time.Millisecond)
+    for k, v := range f_res {
+        if len(v) > 1 {
+            i := 0
+            j := len(v) - 1
+            i_b := getInt64T(i, v[i][0]) < f_millis
+            j_b := getInt64T(j, v[j][0]) >= t_millis
+            for i < j && (i_b || j_b) {
+               if i_b {
+                  i = i + 1
+                  i_b = getInt64T(i, v[i][0]) < f_millis
+               }
+               if j_b {
+                  j = j - 1
+                  j_b = getInt64T(j, v[j][0]) >= t_millis
+               }
+            }
+            f_res[k] = v[i:j]
+        }
+    }
 	return f_res
+}
+
+func getInt64T(i int, t interface{}) int64 {
+    switch t_:= t.(type) {
+       case int:
+           return int64(t.(int))
+       case int64:
+           return t.(int64)
+       default:
+           log.Printf("Type is unsupprted. %v is of type %v.", t, t_)
+           return 0
+    }
 }
 
 func mergeMaps(m *map[string]mongo.Points, ch *chan map[string]mongo.Points, ch_cnt int) {
