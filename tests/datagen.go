@@ -66,7 +66,7 @@ func main() {
 	y := time.Now().Year()
     dt := time.Date(y, time.January, 1, 0, 0, 0, 0, time.UTC)
     
-    for i:= 0; i < 60*60*2*365; i++ {
+    for i:= 0; i < 60*60*24*365; i++ {
 			
 			sec := dt.Second()
 			sec_s := strconv.Itoa(sec)
