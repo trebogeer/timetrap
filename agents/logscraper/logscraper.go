@@ -3,10 +3,11 @@ package main
 import (
 	"bufio"
 	"flag"
-	"fmt"
+//	"fmt"
 //	"gopkg.in/mgo.v2"
 	//"gopkg.in/mgo.v2/bson"
 	"io"
+    "io/ioutil"
     "log"
 	//"os"
     "os/exec"
@@ -15,6 +16,7 @@ import (
 	"strconv"
 	//"strings"
 	"time"
+    "gopkg.in/yaml.v2"
 )
 
 var (
@@ -29,6 +31,7 @@ var (
 	cphost = flag.Bool("cph", true, "Store each host's metrics to a separate collection.")
 	dbg = flag.Bool("dbg", false, "Print more output during execution if true.")
     file_path = flag.String("fp", "/tmp/test", "Log file to scrape.")
+    yaml_rules_file = flag.String("rf", "rules.yaml", "Regular experession rules ")
 
 )
 
@@ -36,10 +39,37 @@ func main() {
 
 	flag.Parse()
 
+	log.Println("MongoDB Host: " + *host)
+	p := fmt.Sprintf("MongoDB Port: %v", *port)
+	log.Println(p)
+	log.Println("MongoDB User: " + *user)
+	reg, _ := regexp.Compile(".*")
+	log.Println("MongoDB Password: " + reg.ReplaceAllString(*pwd, "*"))
+	log.Println("MongoDB Auth Database: " + *audb)
+	log.Println("MongoDB Database: " + *dbName)
+	log.Println("MongoDB Collection: " + *collName)
+	log.Printf("Collection per host: %v", *cphost)
+    log.Printf("Debug: %v", *dbg)
+    log.Printf("Log file: %v", *file_path)
+    log.Printf("Rules yaml file path: %v", *yaml_rules_file)
+
+    // yaml rules processing
+    rules := make(map[interface{}]interface{})
+    yamlBytes, err := ioutil.ReadFile(*yaml_rules_file)
+    if err != nil {
+       log.Panic(err)
+    }
+    err = yaml.Unmarshal(yamlBytes, &rules)
+    if err != nil {
+       log.Panic(err)
+    }
+
+    log.Printf("%v", rules)
+    // tailing output
     cmd := exec.Command("which", "tail")
     var out bytes.Buffer
     cmd.Stdout = &out
-    err := cmd.Run()
+    err = cmd.Run()
     if err != nil {
         log.Panic(err)
     }
@@ -64,19 +94,7 @@ func main() {
 		Password: *pwd,
 	}
 */
-	fmt.Println("MongoDB Host: " + *host)
-	p := fmt.Sprintf("MongoDB Port: %v", *port)
-	fmt.Println(p)
-	fmt.Println("MongoDB User: " + *user)
-	reg, _ := regexp.Compile(".*")
-	fmt.Println("MongoDB Password: " + reg.ReplaceAllString(*pwd, "*"))
-	fmt.Println("MongoDB Auth Database: " + *audb)
-	fmt.Println("MongoDB Database: " + *dbName)
-	fmt.Println("MongoDB Collection: " + *collName)
-	fmt.Printf("Collection per host: %v\n", *cphost)
-    fmt.Printf("Debug: %v\n", *dbg)
-    fmt.Printf("Log file: %v\n", *file_path)
-/*ession, err := mgo.DialWithInfo(mdbDialInfo)
+/*session, err := mgo.DialWithInfo(mdbDialInfo)
 	if err != nil {
 		panic(err)
 	}

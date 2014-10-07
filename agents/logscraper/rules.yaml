@@ -1,0 +1,5 @@
+test:
+    match: ^.*timetrap.*$
+    parse:
+        field1: us=([0-9]*)
+        field2: ^.*\s
