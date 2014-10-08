@@ -7,16 +7,20 @@ import (
 //	"gopkg.in/mgo.v2"
 	//"gopkg.in/mgo.v2/bson"
 	"io"
+    "os"
     "io/ioutil"
-    "log"
+    //"log"
 	//"os"
     "os/exec"
-    "bytes"
+//    "bytes"
 	"regexp"
 	"strconv"
 	//"strings"
 	"time"
     "gopkg.in/yaml.v2"
+    //stdlog "log"
+
+    log "github.com/golang/glog"
 )
 
 var (
@@ -29,7 +33,6 @@ var (
 	dbName = flag.String("db", "midori", "MongoDB database to store metrics to.")
 	collName = flag.String("c", "mstat", "MongoDB collection to store metrics to.")
 	cphost = flag.Bool("cph", true, "Store each host's metrics to a separate collection.")
-	dbg = flag.Bool("dbg", false, "Print more output during execution if true.")
     file_path = flag.String("fp", "/tmp/test", "Log file to scrape.")
     yaml_rules_file = flag.String("rf", "rules.yaml", "Regular experession rules ")
 
@@ -39,52 +42,43 @@ func main() {
 
 	flag.Parse()
 
-	log.Println("MongoDB Host: " + *host)
-	p := fmt.Sprintf("MongoDB Port: %v", *port)
-	log.Println(p)
-	log.Println("MongoDB User: " + *user)
+	log.V(1).Info("MongoDB Host: " + *host)
+    log.V(1).Infof("MongoDB Port: %v", *port)
+	log.V(1).Info("MongoDB User: " + *user)
 	reg, _ := regexp.Compile(".*")
-	log.Println("MongoDB Password: " + reg.ReplaceAllString(*pwd, "*"))
-	log.Println("MongoDB Auth Database: " + *audb)
-	log.Println("MongoDB Database: " + *dbName)
-	log.Println("MongoDB Collection: " + *collName)
-	log.Printf("Collection per host: %v", *cphost)
-    log.Printf("Debug: %v", *dbg)
-    log.Printf("Log file: %v", *file_path)
-    log.Printf("Rules yaml file path: %v", *yaml_rules_file)
+	log.V(1).Info("MongoDB Password: " + reg.ReplaceAllString(*pwd, "*******"))
+	log.V(1).Info("MongoDB Auth Database: " + *audb)
+	log.V(1).Info("MongoDB Database: " + *dbName)
+	log.V(1).Info("MongoDB Collection: " + *collName)
+	log.V(1).Info("Collection per host: %v", *cphost)
+    log.V(1).Info("Log file: %v", *file_path)
+    log.V(1).Info("Rules yaml file path: %v", *yaml_rules_file)
 
     // yaml rules processing
     rules := make(map[interface{}]interface{})
     yamlBytes, err := ioutil.ReadFile(*yaml_rules_file)
     if err != nil {
-       log.Panic(err)
+        log.Fatal("Error reading rules file:", err)
+        os.Exit(1)
     }
     err = yaml.Unmarshal(yamlBytes, &rules)
     if err != nil {
-       log.Panic(err)
+        log.Fatal("Error parsing rules file:", err)
+        os.Exit(1)
     }
 
-    log.Printf("%v", rules)
+    log.Info("%v", rules)
     // tailing output
-    cmd := exec.Command("which", "tail")
-    var out bytes.Buffer
-    cmd.Stdout = &out
-    err = cmd.Run()
-    if err != nil {
-        log.Panic(err)
-    }
 
-    tail_path := out.String()
-
-    cmd = exec.Command("tail", "-F", *file_path)
+    cmd := exec.Command("tail", "-F", *file_path)
     stdout, err := cmd.StdoutPipe()
     if err != nil {
-        log.Println("Error getting pipe.")
-        log.Fatal(err)
+        log.Fatal("Error tailing file",err)
+        os.Exit(1)
     }
     if err := cmd.Start();err != nil {
-        log.Printf("Error executing command: %v %v", tail_path, *file_path)
-        log.Fatal(err)
+        //log.Printf("Error executing command: %v %v", tail_path, *file_path)
+        log.Fatal("Error executing command: ", err)
     }
 
 /*	mdbDialInfo := &mgo.DialInfo{
@@ -111,7 +105,7 @@ func main() {
 	line, err := reader.ReadString('\n')
 	for err == nil {
 
-    log.Println(line)
+    log.Info(line)
 	/*	m := strings.Fields(stripStars.ReplaceAllString(line, ""))
 		if len(m) == 22 {
 			e12 := strings.Split(m[12], ":")
@@ -163,12 +157,12 @@ func main() {
 		line, err = reader.ReadString('\n')
 	}
 	if err != io.EOF {
-		fmt.Println(err)
+		log.Error(err)
 	}
     if err := cmd.Wait();err != nil {
         log.Fatal(err)
     }
-	fmt.Println("Bye!")
+	log.Info("Bye!")
 }
 
 func toInt(s string) int {
@@ -195,9 +189,3 @@ func mstatObjectId(host string, repl string, t time.Time) string {
 	return timeHex + host + repl
 }
 
-func debug(t string, i ...interface{}) {
-  if *dbg {
-     fmt.Printf(t+"\n", i)
-  }
-
-}
