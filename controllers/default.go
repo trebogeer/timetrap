@@ -99,7 +99,7 @@ func (this *TTController) GraphData() {
 
 func getGraphData(db, x, y string, collections, labels []string, from, to time.Time, to_keep int64) map[string]mongo.Points {
     t_diff := to.Sub(from)
-	dur, _ := time.ParseDuration("6h")
+	dur, _ := time.ParseDuration("4h")
     var keep_per_slice int64
     if t_diff > dur {
        slices := t_diff/dur
@@ -129,7 +129,7 @@ func getGraphData(db, x, y string, collections, labels []string, from, to time.T
 							l := len(v)
 							vis := make([]simplify.Point, l)
 							for s := 0; s < l; s++ {
-								vis[s] = simplify.Point{float64(v[s][0].(int64)), v[s][1].(float64)}
+								vis[s] = simplify.Point{float64(v[s][0].(int64)), getFloat64(v[s][1])}
 							}
 
 							err, viss := simplify.Visvalingam(int(keep_per_slice), vis)
@@ -169,16 +169,16 @@ func getGraphData(db, x, y string, collections, labels []string, from, to time.T
         if len(v) > 1 {
             i := 0
             j := len(v) - 1
-            i_b := getInt64T(i, v[i][0]) < f_millis
-            j_b := getInt64T(j, v[j][0]) >= t_millis
+            i_b := getInt64T(v[i][0]) < f_millis
+            j_b := getInt64T(v[j][0]) >= t_millis
             for i < j && (i_b || j_b) {
                if i_b {
                   i = i + 1
-                  i_b = getInt64T(i, v[i][0]) < f_millis
+                  i_b = getInt64T(v[i][0]) < f_millis
                }
                if j_b {
                   j = j - 1
-                  j_b = getInt64T(j, v[j][0]) >= t_millis
+                  j_b = getInt64T(v[j][0]) >= t_millis
                }
             }
             f_res[k] = v[i:j]
@@ -187,7 +187,26 @@ func getGraphData(db, x, y string, collections, labels []string, from, to time.T
 	return f_res
 }
 
-func getInt64T(i int, t interface{}) int64 {
+func getFloat64(t interface{}) float64 {
+   switch t_:= t.(type) {
+      case int:
+          return float64(t.(int))
+      case float64:
+          return t.(float64)
+      case int64:
+          return float64(t.(int64))
+      case int32:
+          return float64(t.(int32))
+      case float32:
+          return float64(t.(float32))
+      default:
+          log.Printf("Tyoe is unsupported. %v is of type %v.", t, t_)
+          return 0
+
+   }
+}
+
+func getInt64T(t interface{}) int64 {
     switch t_:= t.(type) {
        case int:
            return int64(t.(int))
