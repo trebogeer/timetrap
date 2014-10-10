@@ -1,7 +1,7 @@
 package controllers
 
 import (
-	"log"
+	log "github.com/golang/glog"
 	"time"
 	"sort"
 	"github.com/astaxie/beego"
@@ -59,7 +59,7 @@ func (this *TTController) GraphData() {
 		keepPoints = keep_p
 	}
 
-	log.Println(keepPoints)
+	log.V(2).Info(keepPoints)
 	if len(c) == 0 || len(db) == 0 {
 		beego.Error("Invalid request")
 		this.Abort("400")
@@ -67,7 +67,7 @@ func (this *TTController) GraphData() {
 
 	err, collections := mongo.GetFilteredCollections(db, c)
 	if err != nil {
-        log.Println("Failed to get filtered collections")
+        log.Error("Failed to get filtered collections")
 		beego.Error(err)
 		this.Abort("500")
 	}
@@ -121,7 +121,7 @@ func getGraphData(db, x, y string, collections, labels []string, from, to time.T
 				go func(c string, f, t time.Time) {
 					err, data := mongo.GetGraphData(db, c, x, y, f, t, labels)
 					if err != nil {
-						log.Println(err)
+						log.Error(err)
 						t_chan <- make(map[string]mongo.Points)
 					} else {
 						for k, v := range data {
@@ -135,8 +135,7 @@ func getGraphData(db, x, y string, collections, labels []string, from, to time.T
 							err, viss := simplify.Visvalingam(int(keep_per_slice), vis)
 							if err != nil {
 								viss = vis
-								log.Println("failed to simplify line.")
-								log.Println(err)
+								log.Error("failed to simplify line.", err)
 							}
 							l = len(viss)
 							vv := make(mongo.Points, l)
@@ -200,7 +199,7 @@ func getFloat64(t interface{}) float64 {
       case float32:
           return float64(t.(float32))
       default:
-          log.Printf("Tyoe is unsupported. %v is of type %v.", t, t_)
+          log.Errorf("Tyoe is unsupported. %v is of type %v.", t, t_)
           return 0
 
    }
@@ -213,7 +212,7 @@ func getInt64T(t interface{}) int64 {
        case int64:
            return t.(int64)
        default:
-           log.Printf("Type is unsupprted. %v is of type %v.", t, t_)
+           log.Errorf("Type is unsupprted. %v is of type %v.", t, t_)
            return 0
     }
 }
