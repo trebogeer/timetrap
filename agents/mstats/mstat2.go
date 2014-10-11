@@ -15,17 +15,15 @@ import (
 )
 
 var (
-
-	host = flag.String("host", "localhost", "MongoDB host to connect to.")
-	port = flag.Int("port", 27017, "MongoDB port to connect to.")
-	user = flag.String("u", "midori", "MongoDB username.")
-	pwd = flag.String("p", "midori", "MongoDB password.")
-	audb = flag.String("authdb", "admin", "MongoDB database to authenticate against.")
-	dbName = flag.String("db", "midori", "MongoDB database to store metrics to.")
+	host     = flag.String("host", "localhost", "MongoDB host to connect to.")
+	port     = flag.Int("port", 27017, "MongoDB port to connect to.")
+	user     = flag.String("u", "midori", "MongoDB username.")
+	pwd      = flag.String("p", "midori", "MongoDB password.")
+	audb     = flag.String("authdb", "admin", "MongoDB database to authenticate against.")
+	dbName   = flag.String("db", "midori", "MongoDB database to store metrics to.")
 	collName = flag.String("c", "mstat", "MongoDB collection to store metrics to.")
-	cphost = flag.Bool("cph", true, "Store each host's metrics to a separate collection.")
-	dbg = flag.Bool("dbg", false, "Print more output during execution if true.")
-
+	cphost   = flag.Bool("cph", true, "Store each host's metrics to a separate collection.")
+	dbg      = flag.Bool("dbg", false, "Print more output during execution if true.")
 )
 
 func main() {
@@ -49,7 +47,7 @@ func main() {
 	fmt.Println("MongoDB Database: " + *dbName)
 	fmt.Println("MongoDB Collection: " + *collName)
 	fmt.Printf("Collection per host: %v\n", *cphost)
-    fmt.Printf("Debug: %v\n", *dbg)
+	fmt.Printf("Debug: %v\n", *dbg)
 	session, err := mgo.DialWithInfo(mdbDialInfo)
 	if err != nil {
 		panic(err)
@@ -72,7 +70,7 @@ func main() {
 			e12_1 := e12[1]
 			var lp float64
 			if len(e12_1) > 0 {
-				lp = toFloat(e12_1[:len(e12_1) - 1])
+				lp = toFloat(e12_1[:len(e12_1)-1])
 			} else {
 				lp = 0
 			}
@@ -97,22 +95,24 @@ func main() {
 			} else {
 				coll = c
 			}
-             doc := bson.M{
-						"h": m[0], "i": toInt(m[1]), "q": toInt(m[2]), "u": toInt(m[3]), "d": toInt(m[4]), "g": toInt(m[5]),
-						"c": toInt(m[6]), "f": toInt(m[7]), "m": m[8], "v": m[9], "r": m[10], "pf": toInt(m[11]), "ldb": e12_0,
-						"lp": lp, "im": toInt(m[13]), "rq": toInt(strings.Split(m[14],
-							"|")[0]), "wq": toInt(strings.Split(m[14], "|")[1]), "ar": toInt(strings.Split(m[15],
-							"|")[0]), "aw": toInt(strings.Split(m[15], "|")[1]), "ni": m[16], "no": m[17], "cn": toInt(m[18]),
-						"s": m[19], "repl": m[20], "t": m[21], "ts": dt}
-             debug("Document: %v", doc)
+			doc := bson.M{
+				"h": m[0], "i": toInt(m[1]), "q": toInt(m[2]), "u": toInt(m[3]), "d": toInt(m[4]), "g": toInt(m[5]),
+				"c": toInt(m[6]), "f": toInt(m[7]), "m": m[8], "v": m[9], "r": m[10], "pf": toInt(m[11]), "ldb": e12_0,
+				"lp": lp, "im": toInt(m[13]), "rq": toInt(strings.Split(m[14],
+					"|")[0]), "wq": toInt(strings.Split(m[14], "|")[1]), "ar": toInt(strings.Split(m[15],
+					"|")[0]), "aw": toInt(strings.Split(m[15], "|")[1]), "ni": m[16], "no": m[17], "cn": toInt(m[18]),
+				"s": m[19], "repl": m[20], "t": m[21], "ts": dt}
+			debug("Document: %v", doc)
 
-			_, dberr := coll.Upsert(bson.M{"_id": id}, bson.M{"$set": bson.M{sec_s: doc}})
-			if dberr != nil {
-				fmt.Println(dberr)
-			}
+			go func(doc bson.M, coll *mgo.Collection) {
+				_, dberr := coll.Upsert(bson.M{"_id": id}, bson.M{"$set": bson.M{sec_s: doc}})
+				if dberr != nil {
+					fmt.Println(dberr)
+				}
+			}(doc, coll)
 		} else {
-            debug("Skipping line [%v] due to non-standard format:", line)
-        }
+			debug("Skipping line [%v] due to non-standard format:", line)
+		}
 		line, err = reader.ReadString('\n')
 	}
 	if err != io.EOF {
@@ -146,8 +146,8 @@ func mstatObjectId(host string, repl string, t time.Time) string {
 }
 
 func debug(t string, i ...interface{}) {
-  if *dbg {
-     fmt.Printf(t+"\n", i)
-  }
+	if *dbg {
+		fmt.Printf(t+"\n", i)
+	}
 
 }

@@ -206,11 +206,11 @@ func objId(t time.Time, f round_time) string {
 }
 
 func t_rup_min(t time.Time) time.Time {
-    return t.Add(time.Minute).Truncate(time.Minute)
+	return t.Add(time.Minute).Truncate(time.Minute)
 }
 
 func t_rdown_min(t time.Time) time.Time {
-    return t.Truncate(time.Minute)
+	return t.Truncate(time.Minute)
 }
 
 func (p Points) Len() int {

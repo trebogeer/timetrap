@@ -7,12 +7,12 @@ import (
 )
 
 func TestVisvalingam(t *testing.T) {
-	p := []Point{{4, 7}, {6, 4}, {8, 6}, {10, 3}, {12, 8}, {16, 9}}
-	err, p2 := Visvalingam(3, p)
+	p := []Point{{4, 7}, {6, 4}, {8, 6}, {10, 3}, {12, 8}, {16, 9}, {18, 10}, {19, 12}}
+	err, p2 := Visvalingam(4, p)
 	if err != nil {
 		t.Error(err.Error())
 	}
-	if len(p2) != 3 {
+	if len(p2) != 4 {
 		t.Error("Failed!")
 		t.Errorf("Current length %v", len(p2))
 	}
