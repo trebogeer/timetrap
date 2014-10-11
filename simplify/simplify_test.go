@@ -1,7 +1,6 @@
-package simplify_test
+package simplify
 
 import (
-	. "github.com/trebogeer/timetrap/simplify"
 	"testing"
 	//"fmt"
 )
