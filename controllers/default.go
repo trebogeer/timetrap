@@ -36,6 +36,10 @@ func (this *TTController) GraphData() {
 	db := this.GetString("db")
 	c := this.GetString("c")
 	x := this.GetString("x")
+	split := this.GetString("split")
+	if len(split) == 0 {
+		split = "12h"
+	}
 	tf := this.GetString("from")
 
 	tt := this.GetString("to")
@@ -87,7 +91,7 @@ func (this *TTController) GraphData() {
 		}
 	}
 
-	data := getGraphData(db, x, y, collections, []string{labelName}, f, t, keepPoints)
+	data := getGraphData(db, x, y, split, collections, []string{labelName}, f, t, keepPoints)
 	d := make(map[string]interface{})
 	dd := make([]interface{}, 0, len(data))
 	d["alias"] = "lp"
@@ -104,9 +108,9 @@ func (this *TTController) GraphData() {
 
 }
 
-func getGraphData(db, x, y string, collections, labels []string, from, to time.Time, to_keep int64) map[string]mongo.Points {
+func getGraphData(db, x, y, split string, collections, labels []string, from, to time.Time, to_keep int64) map[string]mongo.Points {
 	t_diff := to.Sub(from)
-	dur, _ := time.ParseDuration("6h")
+	dur, _ := time.ParseDuration(split)
 	var keep_per_slice int64
 	if t_diff > dur {
 		slices := t_diff / dur
