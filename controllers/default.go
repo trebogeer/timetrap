@@ -79,11 +79,12 @@ func (this *TTController) GraphData() {
     t = time.Now()
 
     if len(tf) != 0 && len(tt) != 0 {
+        f_ := f
         if f, err = time.Parse(dateFormat, tf); err != nil {
              log.Error("Failed to parse start date.", tf)
-        }
-        if t, err = time.Parse(dateFormat, tt); err != nil {
+        } else if t, err = time.Parse(dateFormat, tt); err != nil {
              log.Error("Failed to parse end date.", tt)
+             f = f_
         }
     }
 
