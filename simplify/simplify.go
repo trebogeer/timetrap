@@ -1,11 +1,11 @@
 package simplify
 
 import (
+	"container/heap"
 	"errors"
 	"math"
 	"sort"
-    "container/heap"
-//    "log"
+	//    "log"
 )
 
 type Point struct {
@@ -45,28 +45,28 @@ func (b ByX) Less(i, j int) bool {
 MinHeap implementation
 */
 
-func (h MinHeap) Len() int {return len(h)}
-func (h MinHeap) Less(i, j int) bool {return h[i].Area < h[j].Area}
+func (h MinHeap) Len() int           { return len(h) }
+func (h MinHeap) Less(i, j int) bool { return h[i].Area < h[j].Area }
 func (h MinHeap) Swap(i, j int) {
-    h[i], h[j] = h[j], h[i]
-    h[i].ind = i
-    h[j].ind = j
+	h[i], h[j] = h[j], h[i]
+	h[i].ind = i
+	h[j].ind = j
 }
 
 func (h *MinHeap) Push(x interface{}) {
-    i := len(*h)
-    entry := x.(*Triangle)
-    entry.ind = i
-    *h = append(*h, entry)
+	i := len(*h)
+	entry := x.(*Triangle)
+	entry.ind = i
+	*h = append(*h, entry)
 }
 
 func (h *MinHeap) Pop() interface{} {
-    old := *h
-    i := len(old)
-    entry := old[i - 1]
-    entry.ind = -1
-    *h = old[0: i - 1]
-    return entry
+	old := *h
+	i := len(old)
+	entry := old[i-1]
+	entry.ind = -1
+	*h = old[0 : i-1]
+	return entry
 }
 
 func area(t Triangle) float64 {
@@ -107,29 +107,29 @@ func Visvalingam(toKeep int, points []Point) (error, []Point) {
 	}
 	keepPoints := toKeep - 2
 
-	tl := make(MinHeap, points_len - 2)
+	tl := make(MinHeap, points_len-2)
 	l := points_len - 1
 	for i := 1; i < l; i++ {
 		t := Triangle{}
-        index := i - 1
+		index := i - 1
 		t.Prev = points[index]
 		t.Point = points[i]
 		t.Next = points[i+1]
 		t.Area = area(t)
-        t.ind = index
-	    tl[index] = &t
-	    if index > 0 {
-		    tl[i - 2].NextT = tl[index]
-		    tl[index].PrevT = tl[i - 2]
-        }
+		t.ind = index
+		tl[index] = &t
+		if index > 0 {
+			tl[i-2].NextT = tl[index]
+			tl[index].PrevT = tl[i-2]
+		}
 	}
-    heap.Init(&tl)
-	if keepPoints < tl.Len()  {
+	heap.Init(&tl)
+	if keepPoints < tl.Len() {
 		for len(tl) > keepPoints {
 			e := heap.Pop(&tl)
 
 			t := e.(*Triangle)
-           // log.Printf("Area : %v", t.Area)
+			// log.Printf("Area : %v", t.Area)
 			if t.PrevT != nil {
 				t.PrevT.NextT = t.NextT
 				t.PrevT.Next = t.Next
@@ -143,13 +143,13 @@ func Visvalingam(toKeep int, points []Point) (error, []Point) {
 			}
 		}
 	}
-	res := make([]Point, tl.Len() + 2)
+	res := make([]Point, tl.Len()+2)
 	res[0] = points[0]
 	for i := range tl {
 		t := tl[i]
 		res[i+1] = t.Point
 	}
-	res[tl.Len() + 1] = points[points_len - 1]
+	res[tl.Len()+1] = points[points_len-1]
 	sort.Sort(ByX(res))
 	return nil, res
 

@@ -20,9 +20,9 @@ type (
 )
 
 const (
-	tback_c = "600s"
-	keep_p  = 1200
-    dateFormat = "yyyy-MM-dd'T'HH:mm:ssz"
+	tback_c    = "600s"
+	keep_p     = 1200
+	dateFormat = "yyyy-MM-dd'T'HH:mm:ssz"
 )
 
 func (this *MainController) Get() {
@@ -36,10 +36,9 @@ func (this *TTController) GraphData() {
 	db := this.GetString("db")
 	c := this.GetString("c")
 	x := this.GetString("x")
-    tf := this.GetString("from")
+	tf := this.GetString("from")
 
-
-    tt := this.GetString("to")
+	tt := this.GetString("to")
 	if len(x) == 0 {
 		x = "ts"
 	}
@@ -67,26 +66,26 @@ func (this *TTController) GraphData() {
 		this.Abort("500")
 	}
 
-    var f time.Time
-    var t time.Time
+	var f time.Time
+	var t time.Time
 
 	dur, err := time.ParseDuration("-" + tback)
 	if err != nil {
 		dur, _ = time.ParseDuration("-" + tback_c)
 	}
 
-    f = time.Now().Add(dur)
-    t = time.Now()
+	f = time.Now().Add(dur)
+	t = time.Now()
 
-    if len(tf) != 0 && len(tt) != 0 {
-        f_ := f
-        if f, err = time.Parse(dateFormat, tf); err != nil {
-             log.Error("Failed to parse start date.", tf)
-        } else if t, err = time.Parse(dateFormat, tt); err != nil {
-             log.Error("Failed to parse end date.", tt)
-             f = f_
-        }
-    }
+	if len(tf) != 0 && len(tt) != 0 {
+		f_ := f
+		if f, err = time.Parse(dateFormat, tf); err != nil {
+			log.Error("Failed to parse start date.", tf)
+		} else if t, err = time.Parse(dateFormat, tt); err != nil {
+			log.Error("Failed to parse end date.", tt)
+			f = f_
+		}
+	}
 
 	data := getGraphData(db, x, y, collections, []string{labelName}, f, t, keepPoints)
 	d := make(map[string]interface{})

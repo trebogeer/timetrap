@@ -105,53 +105,53 @@ func main() {
 
 		log.Info(line)
 		/*	m := strings.Fields(stripStars.ReplaceAllString(line, ""))
-				if len(m) == 22 {
-					e12 := strings.Split(m[12], ":")
-					e12_0 := e12[0]
-					e12_1 := e12[1]
-					var lp float64
-					if len(e12_1) > 0 {
-						lp = toFloat(e12_1[:len(e12_1) - 1])
-					} else {
-						lp = 0
-					}
-					h_ := strings.Split(m[0], ":")[0]
-					rep := m[20]
-					dt := time.Now()
-					sec := dt.Second()
-					sec_s := strconv.Itoa(sec)
-					id := mstatObjectId(h_, rep, time.Now())
-
-					var coll *mgo.Collection
-					if *cphost {
-						key := h_ + rep
-						hc, ok := cm[key]
-						if !ok {
-							hc_ := session.DB(*dbName).C(key)
-							cm[key] = hc_
-							coll = hc_
+					if len(m) == 22 {
+						e12 := strings.Split(m[12], ":")
+						e12_0 := e12[0]
+						e12_1 := e12[1]
+						var lp float64
+						if len(e12_1) > 0 {
+							lp = toFloat(e12_1[:len(e12_1) - 1])
 						} else {
-							coll = hc
+							lp = 0
+						}
+						h_ := strings.Split(m[0], ":")[0]
+						rep := m[20]
+						dt := time.Now()
+						sec := dt.Second()
+						sec_s := strconv.Itoa(sec)
+						id := mstatObjectId(h_, rep, time.Now())
+
+						var coll *mgo.Collection
+						if *cphost {
+							key := h_ + rep
+							hc, ok := cm[key]
+							if !ok {
+								hc_ := session.DB(*dbName).C(key)
+								cm[key] = hc_
+								coll = hc_
+							} else {
+								coll = hc
+							}
+						} else {
+							coll = c
+						}
+			             doc := bson.M{
+									"h": m[0], "i": toInt(m[1]), "q": toInt(m[2]), "u": toInt(m[3]), "d": toInt(m[4]), "g": toInt(m[5]),
+									"c": toInt(m[6]), "f": toInt(m[7]), "m": m[8], "v": m[9], "r": m[10], "pf": toInt(m[11]), "ldb": e12_0,
+									"lp": lp, "im": toInt(m[13]), "rq": toInt(strings.Split(m[14],
+										"|")[0]), "wq": toInt(strings.Split(m[14], "|")[1]), "ar": toInt(strings.Split(m[15],
+										"|")[0]), "aw": toInt(strings.Split(m[15], "|")[1]), "ni": m[16], "no": m[17], "cn": toInt(m[18]),
+									"s": m[19], "repl": m[20], "t": m[21], "ts": dt}
+			             debug("Document: %v", doc)
+
+						_, dberr := coll.Upsert(bson.M{"_id": id}, bson.M{"$set": bson.M{sec_s: doc}})
+						if dberr != nil {
+							fmt.Println(dberr)
 						}
 					} else {
-						coll = c
-					}
-		             doc := bson.M{
-								"h": m[0], "i": toInt(m[1]), "q": toInt(m[2]), "u": toInt(m[3]), "d": toInt(m[4]), "g": toInt(m[5]),
-								"c": toInt(m[6]), "f": toInt(m[7]), "m": m[8], "v": m[9], "r": m[10], "pf": toInt(m[11]), "ldb": e12_0,
-								"lp": lp, "im": toInt(m[13]), "rq": toInt(strings.Split(m[14],
-									"|")[0]), "wq": toInt(strings.Split(m[14], "|")[1]), "ar": toInt(strings.Split(m[15],
-									"|")[0]), "aw": toInt(strings.Split(m[15], "|")[1]), "ni": m[16], "no": m[17], "cn": toInt(m[18]),
-								"s": m[19], "repl": m[20], "t": m[21], "ts": dt}
-		             debug("Document: %v", doc)
-
-					_, dberr := coll.Upsert(bson.M{"_id": id}, bson.M{"$set": bson.M{sec_s: doc}})
-					if dberr != nil {
-						fmt.Println(dberr)
-					}
-				} else {
-		            debug("Skipping line [%v] due to non-standard format:", line)
-		        }*/
+			            debug("Skipping line [%v] due to non-standard format:", line)
+			        }*/
 		line, err = reader.ReadString('\n')
 	}
 	if err != io.EOF {
