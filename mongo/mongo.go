@@ -36,7 +36,7 @@ type (
 	*/
 )
 
-type XY []interface{}
+type XY [2]interface{}
 type Points []XY
 type round_time func(t time.Time) time.Time
 

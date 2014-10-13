@@ -10,7 +10,7 @@ import (
 	"math/rand"
 )
 
-func DrawPlot(name string, data map[string]interface{}) {
+func DrawPlot(name string, data []map[string]interface{}) {
 	rand.Seed(int64(0))
 
 	p, err := plot.New()
@@ -27,10 +27,14 @@ func DrawPlot(name string, data map[string]interface{}) {
 	// tick marks and re-labels the major ticks with dates
 	p.X.Tick.Marker = dateTicks
 
-	err = plotutil.AddLinePoints(p,
-		"First", makePoints(make([]interface{}, 0)),
-		"Second", makePoints(make([]interface{}, 0)),
-		"Third", makePoints(make([]interface{}, 0)))
+	lines := make([]interface{}, 2*len(data))
+	for i := range data {
+		l := 2 * i
+		lines[l] = data[i]["key"]
+		lines[l+1] = makePoints(data[i]["values"].([]interface{}))
+	}
+
+	err = plotutil.AddLinePoints(p, lines)
 	if err != nil {
 		panic(err)
 	}
