@@ -7,11 +7,15 @@ import (
 	"code.google.com/p/plotinum/plotter"
 	"code.google.com/p/plotinum/plotutil"
 	log "github.com/golang/glog"
-	"math/rand"
+	"strconv"
+	"time"
+)
+
+const (
+	dateFormat = "HH:mm:ss MM/dd/yyyy"
 )
 
 func DrawPlot(name string, data []map[string]interface{}) {
-	rand.Seed(int64(0))
 
 	p, err := plot.New()
 	if err != nil {
@@ -61,33 +65,27 @@ func makePoints(arr []interface{}) plotter.XYs {
 
 // CommaTicks computes the default tick marks, but inserts commas
 // into the labels for the major tick marks.
-func dateTicks(min, max float64) []plot.Tick {
+func dateTicks(min, max int64) []plot.Tick {
 	tks := plot.DefaultTicks(min, max)
 	for i, t := range tks {
 		if t.Label == "" { // Skip minor ticks, they are fine.
 			continue
 		}
-		tks[i].Label = addCommas(t.Label)
+		tks[i].Label = formatLabel(t.Label)
 	}
 	return tks
 }
 
-// AddCommas adds commas after every 3 characters from right to left.
-// NOTE: This function is a quick hack, it doesn't work with decimal
-// points, and may have a bunch of other problems.
-func addCommas(s string) string {
-	rev := ""
-	n := 0
-	for i := len(s) - 1; i >= 0; i-- {
-		rev += string(s[i])
-		n++
-		if n%3 == 0 {
-			rev += ","
-		}
+func formatLabel(s string) string {
+	i, err := strconv.Atoi(s)
+	if err != nil {
+		return s
 	}
-	s = ""
-	for i := len(rev) - 1; i >= 0; i-- {
-		s += string(rev[i])
-	}
-	return s
+	i64 := int64(i)
+	s := i64 / 1000
+	ns := (i64 % 1000) * 1000 * 1000
+
+	t := time.Unix(s, ns)
+
+	return t.Format(dateFormat)
 }
