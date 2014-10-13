@@ -47,6 +47,9 @@ func (this *TTController) GraphData() {
 		x = "ts"
 	}
 	y := this.GetString("y")
+    if len(y) == 0 {
+       y = "lp"
+    }
 	tback := this.GetString("tback")
 	if len(tback) == 0 {
 		tback = tback_c
@@ -94,7 +97,8 @@ func (this *TTController) GraphData() {
 	data := getGraphData(db, x, y, split, collections, []string{labelName}, f, t, keepPoints)
 	d := make(map[string]interface{})
 	dd := make([]interface{}, 0, len(data))
-	d["alias"] = "lp"
+    alias := mongo.GetKV(db, "alias", y)
+	d["alias"] = alias
 	for k, v := range data {
 		m := make(map[string]interface{})
 		m["key"] = k
@@ -210,7 +214,7 @@ func getFloat64(t interface{}) float64 {
 	case float32:
 		return float64(t.(float32))
 	default:
-		log.Errorf("Tyoe is unsupported. %v is of type %v.", t, t_)
+		log.Errorf("Type is unsupported. %v is of type %v.", t, t_)
 		return 0
 
 	}
@@ -223,7 +227,7 @@ func getInt64T(t interface{}) int64 {
 	case int64:
 		return t.(int64)
 	default:
-		log.Errorf("Type is unsupprted. %v is of type %v.", t, t_)
+		log.Errorf("Type is unsupported. %v is of type %v.", t, t_)
 		return 0
 	}
 }

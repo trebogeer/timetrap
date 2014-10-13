@@ -52,20 +52,20 @@ func DrawPlot(name string, data []map[string]interface{}) {
 // RandomPoints returns some random x, y points.
 func makePoints(arr []interface{}) plotter.XYs {
 	pts := make(plotter.XYs, len(arr))
-	for i := range pts {
+	/*for i := range pts {
 		if i == 0 {
 			pts[i].X = rand.Float64()
 		} else {
 			pts[i].X = pts[i-1].X + rand.Float64()
 		}
 		pts[i].Y = (pts[i].X + 10*rand.Float64()) * 1000
-	}
+	}*/
 	return pts
 }
 
 // CommaTicks computes the default tick marks, but inserts commas
 // into the labels for the major tick marks.
-func dateTicks(min, max int64) []plot.Tick {
+func dateTicks(min, max float64) []plot.Tick {
 	tks := plot.DefaultTicks(min, max)
 	for i, t := range tks {
 		if t.Label == "" { // Skip minor ticks, they are fine.
@@ -82,10 +82,10 @@ func formatLabel(s string) string {
 		return s
 	}
 	i64 := int64(i)
-	s := i64 / 1000
-	ns := (i64 % 1000) * 1000 * 1000
+	sec := i64 / 1000
+	nanos := (i64 % 1000) * 1000 * 1000
 
-	t := time.Unix(s, ns)
+	t := time.Unix(sec, nanos)
 
 	return t.Format(dateFormat)
 }

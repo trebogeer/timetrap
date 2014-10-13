@@ -152,13 +152,13 @@ func GetKV(db, c, k string) string {
 	coll := s.DB(db).C(c)
 	defer s.Close()
 	res := bson.M{}
-	err := coll.Find(bson.M{"_id": k}).Select(bson.M{"_id": 1}).One(&res)
+	err := coll.Find(bson.M{"_id": k}).Select(bson.M{"v": 1}).One(&res)
 	if err != nil {
 		log.Printf("Error retrieving value by key [%v].\n", k)
 		log.Println(err.Error())
 		return "N/A"
 	}
-	if str, ok := res["_id"].(string); ok {
+	if str, ok := res["v"].(string); ok {
 		return str
 	} else {
 		return "N/A"
