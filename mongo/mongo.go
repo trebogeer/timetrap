@@ -103,7 +103,7 @@ func GetGraphData(db, c, x, y string, from, to time.Time, labels []string) (erro
 	s := masterSession.ms.Copy()
 	coll := s.DB(db).C(c)
 	defer s.Close()
-	cur := coll.Find(query).Sort("_id").Select(proj).Iter()
+	cur := coll.Find(query). /*Sort("_id").*/ Select(proj).Iter()
 
 	res := make(map[string]Points)
 	entry := bson.M{}

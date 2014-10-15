@@ -3,54 +3,69 @@ package main
 import (
 	"bufio"
 	"flag"
-	"fmt"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 	"io"
+	"log"
 	"os"
+	"os/exec"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
+	//    "fmt"
 )
 
 var (
-	host     = flag.String("host", "localhost", "MongoDB host to connect to.")
-	port     = flag.Int("port", 27017, "MongoDB port to connect to.")
-	user     = flag.String("u", "midori", "MongoDB username.")
-	pwd      = flag.String("p", "midori", "MongoDB password.")
-	audb     = flag.String("authdb", "admin", "MongoDB database to authenticate against.")
-	dbName   = flag.String("db", "midori", "MongoDB database to store metrics to.")
-	collName = flag.String("c", "mstat", "MongoDB collection to store metrics to.")
-	cphost   = flag.Bool("cph", true, "Store each host's metrics to a separate collection.")
-	dbg      = flag.Bool("dbg", false, "Print more output during execution if true.")
+	host      = flag.String("host", "localhost", "MongoDB host to connect to.")
+	port      = flag.Int("port", 27017, "MongoDB port to connect to.")
+	user      = flag.String("u", "midori", "MongoDB username.")
+	pwd       = flag.String("p", "midori", "MongoDB password.")
+	audb      = flag.String("authdb", "admin", "MongoDB database to authenticate against.")
+	dbName    = flag.String("db", "midori", "MongoDB database to store metrics to.")
+	collName  = flag.String("c", "mstat", "MongoDB collection to store metrics to.")
+	cphost    = flag.Bool("cph", true, "Store each host's metrics to a separate collection.")
+	dbg       = flag.Bool("dbg", false, "Print more output during execution if true.")
+	logfile   = flag.String("logfile", os.TempDir()+string(os.PathSeparator)+"mstat.log", "Log file path.")
+	mongostat = flag.String("mongostat", "mongostat", "mongostat executable path.")
+	muname    = flag.String("muname", "DBMON", "Mongostat username.")
+	mpass     = flag.String("mpassword", "ch3ck1ng", "Mongostat password.")
+	hostport  = flag.String("hostport", "localhost:27017", "Host and Port for mongostat to connect foramtted as 'localhost:27017'.")
+	mauthdb   = flag.String("mauthdb", "admin", "DB for mongodtat to authenticate agaist.")
+	interval  = flag.String("interval", "1", "Interval in seconds to poll data for mongostat.")
 )
 
 func main() {
 
 	flag.Parse()
-
+	f, err := createLogFile(*logfile)
+	//    fmt.Println("Created log file.")
+	if err == nil {
+		log.SetOutput(f)
+		defer f.Close()
+	}
+	log.Println("Initialized logger.")
 	mdbDialInfo := &mgo.DialInfo{
 		Addrs:    []string{*host + ":" + strconv.Itoa(*port)},
 		Source:   *audb,
 		Username: *user,
 		Password: *pwd,
+		Timeout:  5 * time.Second,
 	}
 
-	fmt.Println("MongoDB Host: " + *host)
-	p := fmt.Sprintf("MongoDB Port: %v", *port)
-	fmt.Println(p)
-	fmt.Println("MongoDB User: " + *user)
-	reg, _ := regexp.Compile(".*")
-	fmt.Println("MongoDB Password: " + reg.ReplaceAllString(*pwd, "*"))
-	fmt.Println("MongoDB Auth Database: " + *audb)
-	fmt.Println("MongoDB Database: " + *dbName)
-	fmt.Println("MongoDB Collection: " + *collName)
-	fmt.Printf("Collection per host: %v\n", *cphost)
-	fmt.Printf("Debug: %v\n", *dbg)
+	log.Println("MongoDB Host: " + *host)
+	log.Printf("MongoDB Port: %v", *port)
+	log.Println("MongoDB User: " + *user)
+	reg, _ := regexp.Compile(".")
+	log.Println("MongoDB Password: " + reg.ReplaceAllString(*pwd, "*"))
+	log.Println("MongoDB Auth Database: " + *audb)
+	log.Println("MongoDB Database: " + *dbName)
+	log.Println("MongoDB Collection: " + *collName)
+	log.Printf("Collection per host: %v", *cphost)
+	log.Printf("Debug: %v", *dbg)
 	session, err := mgo.DialWithInfo(mdbDialInfo)
 	if err != nil {
-		panic(err)
+		log.Panic(err)
 	}
 	defer session.Close()
 	session.SetMode(mgo.Monotonic, true)
@@ -59,8 +74,14 @@ func main() {
 
 	cm := make(map[string]*mgo.Collection)
 
+	stdout, cmd, err := runMongostat(*muname, *mpass, *hostport, *mauthdb, *interval, *mongostat)
+	if err != nil {
+		log.Fatal("Failed to start mongostat: ", err)
+	}
+	defer stdout.Close()
+
 	stripStars, _ := regexp.Compile("\\*")
-	reader := bufio.NewReader(os.Stdin)
+	reader := bufio.NewReader(stdout)
 	line, err := reader.ReadString('\n')
 	for err == nil {
 		m := strings.Fields(stripStars.ReplaceAllString(line, ""))
@@ -107,7 +128,7 @@ func main() {
 			go func(doc bson.M, coll *mgo.Collection) {
 				_, dberr := coll.Upsert(bson.M{"_id": id}, bson.M{"$set": bson.M{sec_s: doc}})
 				if dberr != nil {
-					fmt.Println(dberr)
+					log.Println(dberr)
 				}
 			}(doc, coll)
 		} else {
@@ -116,9 +137,12 @@ func main() {
 		line, err = reader.ReadString('\n')
 	}
 	if err != io.EOF {
-		fmt.Println(err)
+		log.Println(err)
 	}
-	fmt.Println("Bye!")
+	if err = cmd.Wait(); err != nil {
+		log.Println(err)
+	}
+	log.Println("Bye!")
 }
 
 func toInt(s string) int {
@@ -147,7 +171,36 @@ func mstatObjectId(host string, repl string, t time.Time) string {
 
 func debug(t string, i ...interface{}) {
 	if *dbg {
-		fmt.Printf(t+"\n", i)
+		log.Printf(t+"\n", i)
 	}
 
+}
+
+func createLogFile(logfile string) (*os.File, error) {
+	/*	if _, err := os.Stat(logfile); !os.IsNotExist(err) {
+			err = os.Rename(logfile, logfile+"."+time.Now().Format("2000-01-29T20-20-39.000"))
+			if err != nil {
+				return nil, err
+			}
+		}
+	*/
+	if f, err := os.OpenFile(logfile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666); err != nil {
+		return f, nil
+	} else {
+		return nil, err
+	}
+}
+
+func runMongostat(uname, pass, hostport, authDB, interval, mongostat string) (io.ReadCloser, *exec.Cmd, error) {
+
+	cmd := exec.Command(mongostat, "--host", hostport, "--username", uname,
+		"--password", pass, "--authenticationDatabase", authDB, "--discover", interval)
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return nil, nil, err
+	}
+	if err = cmd.Start(); err != nil {
+		return nil, nil, err
+	}
+	return stdout, cmd, nil
 }

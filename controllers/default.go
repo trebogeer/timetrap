@@ -40,16 +40,17 @@ func (this *TTController) GraphData() {
 	if len(split) == 0 {
 		split = "12h"
 	}
-	tf := this.GetString("from")
 
+	tf := this.GetString("from")
 	tt := this.GetString("to")
+
 	if len(x) == 0 {
 		x = "ts"
 	}
 	y := this.GetString("y")
-    if len(y) == 0 {
-       y = "lp"
-    }
+	if len(y) == 0 {
+		y = "lp"
+	}
 	tback := this.GetString("tback")
 	if len(tback) == 0 {
 		tback = tback_c
@@ -97,7 +98,7 @@ func (this *TTController) GraphData() {
 	data := getGraphData(db, x, y, split, collections, []string{labelName}, f, t, keepPoints)
 	d := make(map[string]interface{})
 	dd := make([]interface{}, 0, len(data))
-    alias := mongo.GetKV(db, "alias", y)
+	alias := mongo.GetKV(db, "alias", y)
 	d["alias"] = alias
 	for k, v := range data {
 		m := make(map[string]interface{})
@@ -140,7 +141,6 @@ func getGraphData(db, x, y, split string, collections, labels []string, from, to
 						t_chan <- make(map[string]mongo.Points)
 					} else {
 						for k, v := range data {
-							//sort.Sort(v)
 							l := len(v)
 							vis := make([]simplify.Point, l)
 							for s := 0; s < l; s++ {
@@ -254,17 +254,3 @@ func min(a, b time.Time) time.Time {
 		return b
 	}
 }
-
-/*
-func (p mongo.Points) Len() int {
-    return len(p)
-}
-
-func (p mongo.Points) Swap (i, j int) {
-    p[i], p[j] = p[j], p[i]
-}
-
-func (p mongo.Points) Less(i, j int) {
-   return p[i][0].(int) < p[j][0].(int)
-}
-*/
