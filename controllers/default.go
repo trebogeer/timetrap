@@ -5,7 +5,8 @@ import (
 	log "github.com/golang/glog"
 	"github.com/trebogeer/timetrap/mongo"
 	"github.com/trebogeer/timetrap/simplify"
-	"sort"
+	//	"sort"
+	"errors"
 	"time"
 )
 
@@ -17,12 +18,30 @@ type (
 	TTController struct {
 		beego.Controller
 	}
+
+	ReqParams struct {
+		db         string
+		c          string
+		x          string
+		y          string
+		split      string
+		tf         time.Time
+		tt         time.Time
+		tback      string
+		labelName  string
+		keepPoints int64
+	}
+
+	result func(*TTController, map[string]interface{})
 )
 
 const (
 	tback_c    = "600s"
 	keep_p     = 1200
 	dateFormat = "yyyy-MM-dd'T'HH:mm:ssz"
+	split_p    = "12h"
+	def_x      = "ts"
+	def_y      = "lp"
 )
 
 func (this *MainController) Get() {
@@ -31,91 +50,58 @@ func (this *MainController) Get() {
 	this.TplNames = "index.tpl"
 }
 
-func (this *TTController) GraphData() {
-	//&tback=1200&x=lp&label=PRI&labelName=repl&d3=true&labelNameAdd=h&simplify=true&keepPoints=800
-	db := this.GetString("db")
-	c := this.GetString("c")
-	x := this.GetString("x")
-	split := this.GetString("split")
-	if len(split) == 0 {
-		split = "12h"
-	}
-
-	tf := this.GetString("from")
-	tt := this.GetString("to")
-
-	if len(x) == 0 {
-		x = "ts"
-	}
-	y := this.GetString("y")
-	if len(y) == 0 {
-		y = "lp"
-	}
-	tback := this.GetString("tback")
-	if len(tback) == 0 {
-		tback = tback_c
-	}
-	labelName := this.GetString("labelName")
-	keepPoints, err := this.GetInt("keepPoints")
+func (this *TTController) GraphData(fn result) {
+	qp, err := this.parseQueryParams()
 	if err != nil {
-		keepPoints = keep_p
-	}
-
-	log.V(2).Info(keepPoints)
-	if len(c) == 0 || len(db) == 0 {
-		beego.Error("Invalid request")
+		log.Error(err)
+		beego.Error("Invalid request. Query parameters are either incorrect or missing while are required.")
 		this.Abort("400")
 	}
 
-	err, collections := mongo.GetFilteredCollections(db, c)
+	err, collections := mongo.GetFilteredCollections(qp.db, qp.c)
 	if err != nil {
-		log.Error("Failed to get filtered collections")
+		log.Error("Failed to get filtered collections.")
 		beego.Error(err)
 		this.Abort("500")
 	}
 
-	var f time.Time
-	var t time.Time
-
-	dur, err := time.ParseDuration("-" + tback)
-	if err != nil {
-		dur, _ = time.ParseDuration("-" + tback_c)
-	}
-
-	f = time.Now().Add(dur)
-	t = time.Now()
-
-	if len(tf) != 0 && len(tt) != 0 {
-		f_ := f
-		if f, err = time.Parse(dateFormat, tf); err != nil {
-			log.Error("Failed to parse start date.", tf)
-		} else if t, err = time.Parse(dateFormat, tt); err != nil {
-			log.Error("Failed to parse end date.", tt)
-			f = f_
-		}
-	}
-
-	data := getGraphData(db, x, y, split, collections, []string{labelName}, f, t, keepPoints)
+	data := getGraphData(qp.db, qp.x, qp.y, qp.split, collections, []string{qp.labelName}, qp.tf, qp.tt, qp.keepPoints)
 	d := make(map[string]interface{})
 	dd := make([]interface{}, 0, len(data))
-	alias := mongo.GetKV(db, "alias", y)
+	alias := mongo.GetKV(qp.db, "alias", qp.y)
 	d["alias"] = alias
+
 	for k, v := range data {
 		m := make(map[string]interface{})
 		m["key"] = k
-		sort.Sort(v)
+		//sort.Sort(v)
 		m["values"] = v
 		dd = append(dd, m)
 	}
 	d["data"] = dd
-	this.Data["json"] = d
-	this.ServeJson()
+	fn(this, d)
+}
 
+func (this *TTController) GraphDataImage() {
+	this.GraphData(func(this *TTController, d map[string]interface{}) {
+		//TODO implement
+	})
+}
+
+func (this *TTController) GraphDataJson() {
+	this.GraphData(func(this *TTController, d map[string]interface{}) {
+		this.Data["json"] = d
+		this.ServeJson()
+	})
 }
 
 func getGraphData(db, x, y, split string, collections, labels []string, from, to time.Time, to_keep int64) map[string]mongo.Points {
 	t_diff := to.Sub(from)
-	dur, _ := time.ParseDuration(split)
+	dur, err := time.ParseDuration(split)
+	if err != nil {
+		dur = t_diff
+	}
+	dur = minDur(t_diff, dur)
 	var keep_per_slice int64
 	if t_diff > dur {
 		slices := t_diff / dur
@@ -253,4 +239,74 @@ func min(a, b time.Time) time.Time {
 	} else {
 		return b
 	}
+}
+
+func minDur(a, b time.Duration) time.Duration {
+	if a < b {
+		return a
+	} else {
+		return b
+	}
+}
+
+func (this *TTController) parseQueryParams() (ReqParams, error) {
+	qp := ReqParams{}
+	//&tback=1200&x=lp&label=PRI&labelName=repl&d3=true&labelNameAdd=h&simplify=true&keepPoints=800
+	qp.db = this.GetString("db")
+	qp.c = this.GetString("c")
+
+	if len(qp.c) == 0 || len(qp.db) == 0 {
+		return qp, errors.New("'db' and 'c' query parameters must be present.")
+	}
+
+	qp.x = this.GetString("x")
+	qp.split = this.GetString("split")
+	if len(qp.split) == 0 {
+		qp.split = split_p
+	}
+
+	tf := this.GetString("from")
+	tt := this.GetString("to")
+
+	var f time.Time
+	var t time.Time
+
+	dur, err := time.ParseDuration("-" + qp.tback)
+	if err != nil {
+		dur, _ = time.ParseDuration("-" + tback_c)
+	}
+
+	f = time.Now().Add(dur)
+	t = time.Now()
+
+	if len(tf) != 0 && len(tt) != 0 {
+		f_ := f
+		if f, err = time.Parse(dateFormat, tf); err != nil {
+			log.Error("Failed to parse start date. Falling back to defaults.", tf)
+		} else if t, err = time.Parse(dateFormat, tt); err != nil {
+			log.Error("Failed to parse end date. Falling back to defaults.", tt)
+			f = f_
+		}
+	}
+
+	qp.tf = f
+	qp.tt = t
+
+	if len(qp.x) == 0 {
+		qp.x = def_x
+	}
+	qp.y = this.GetString("y")
+	if len(qp.y) == 0 {
+		qp.y = def_y
+	}
+	qp.tback = this.GetString("tback")
+	if len(qp.tback) == 0 {
+		qp.tback = tback_c
+	}
+	qp.labelName = this.GetString("labelName")
+	qp.keepPoints, err = this.GetInt("keepPoints")
+	if err != nil {
+		qp.keepPoints = keep_p
+	}
+	return qp, nil
 }
