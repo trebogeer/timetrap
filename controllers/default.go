@@ -3,6 +3,8 @@ package controllers
 import (
 	"github.com/astaxie/beego"
 	log "github.com/golang/glog"
+	"github.com/trebogeer/timetrap/data"
+	gp "github.com/trebogeer/timetrap/graphplot"
 	"github.com/trebogeer/timetrap/mongo"
 	"github.com/trebogeer/timetrap/simplify"
 	//	"sort"
@@ -67,7 +69,7 @@ func (this *TTController) GraphData(fn result) {
 
 	data := getGraphData(qp.db, qp.x, qp.y, qp.split, collections, []string{qp.labelName}, qp.tf, qp.tt, qp.keepPoints)
 	d := make(map[string]interface{})
-	dd := make([]interface{}, 0, len(data))
+	dd := make([]map[string]interface{}, 0, len(data))
 	alias := mongo.GetKV(qp.db, "alias", qp.y)
 	d["alias"] = alias
 
@@ -84,7 +86,12 @@ func (this *TTController) GraphData(fn result) {
 
 func (this *TTController) GraphDataImage() {
 	this.GraphData(func(this *TTController, d map[string]interface{}) {
-		//TODO implement
+		err := gp.DrawPlot(d)
+		if err != nil {
+			log.Error(err)
+		}
+		this.Data["json"] = make([]int, 1)
+		this.ServeJson()
 	})
 }
 
@@ -95,7 +102,7 @@ func (this *TTController) GraphDataJson() {
 	})
 }
 
-func getGraphData(db, x, y, split string, collections, labels []string, from, to time.Time, to_keep int64) map[string]mongo.Points {
+func getGraphData(db, x, y, split string, collections, labels []string, from, to time.Time, to_keep int64) map[string]data.Points {
 	t_diff := to.Sub(from)
 	dur, err := time.ParseDuration(split)
 	if err != nil {
@@ -111,22 +118,22 @@ func getGraphData(db, x, y, split string, collections, labels []string, from, to
 	}
 
 	c_len := len(collections)
-	res_channel := make(chan map[string]mongo.Points, 100)
+	res_channel := make(chan map[string]data.Points, 100)
 	for i := 0; i < c_len; i++ {
 		go func(c string) {
-			t_chan := make(chan map[string]mongo.Points, 1000)
+			t_chan := make(chan map[string]data.Points, 1000)
 			t := from
 			ch_cnt := 0
 			for t.Before(to) {
 				tt := min(t.Add(dur), to)
 				ch_cnt++
 				go func(c string, f, t time.Time) {
-					err, data := mongo.GetGraphData(db, c, x, y, f, t, labels)
+					err, data_ := mongo.GetGraphData(db, c, x, y, f, t, labels)
 					if err != nil {
 						log.Error(err)
-						t_chan <- make(map[string]mongo.Points)
+						t_chan <- make(map[string]data.Points)
 					} else {
-						for k, v := range data {
+						for k, v := range data_ {
 							l := len(v)
 							vis := make([]simplify.Point, l)
 							for s := 0; s < l; s++ {
@@ -139,28 +146,28 @@ func getGraphData(db, x, y, split string, collections, labels []string, from, to
 								log.Error("failed to simplify line.", err)
 							}
 							l = len(viss)
-							vv := make(mongo.Points, l)
+							vv := make(data.Points, l)
 							for v := 0; v < l; v++ {
 								x := int(viss[v].X)
 								y := float32(viss[v].Y)
-								vv[v] = mongo.XY{x, y}
+								vv[v] = data.XY{x, y}
 							}
 
-							data[k] = vv
+							data_[k] = vv
 
 						}
-						t_chan <- data
+						t_chan <- data_
 					}
 
 				}(c, t, tt)
 				t = tt
 			}
-			res := make(map[string]mongo.Points)
+			res := make(map[string]data.Points)
 			mergeMaps(&res, &t_chan, ch_cnt)
 			res_channel <- res
 		}(collections[i])
 	}
-	f_res := make(map[string]mongo.Points)
+	f_res := make(map[string]data.Points)
 	mergeMaps(&f_res, &res_channel, c_len)
 
 	f_millis := from.UnixNano() / int64(time.Millisecond)
@@ -218,7 +225,7 @@ func getInt64T(t interface{}) int64 {
 	}
 }
 
-func mergeMaps(m *map[string]mongo.Points, ch *chan map[string]mongo.Points, ch_cnt int) {
+func mergeMaps(m *map[string]data.Points, ch *chan map[string]data.Points, ch_cnt int) {
 	mm := *m
 
 	for i := 0; i < ch_cnt; i++ {

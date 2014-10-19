@@ -8,6 +8,7 @@ import (
 	"time"
 	//"reflect"
 	//env "github.com/kelseyhightower/envconfig"
+	. "github.com/trebogeer/timetrap/data"
 	mgo "gopkg.in/mgo.v2"
 	bson "gopkg.in/mgo.v2/bson"
 	cnv "strconv"
@@ -36,8 +37,8 @@ type (
 	*/
 )
 
-type XY [2]interface{}
-type Points []XY
+//type XY [2]interface{}
+//type Points []XY
 type round_time func(t time.Time) time.Time
 
 func Init(host, port, authdb, user, password string) error {
@@ -211,16 +212,4 @@ func t_rup_min(t time.Time) time.Time {
 
 func t_rdown_min(t time.Time) time.Time {
 	return t.Truncate(time.Minute)
-}
-
-func (p Points) Len() int {
-	return len(p)
-}
-
-func (p Points) Swap(i, j int) {
-	p[i], p[j] = p[j], p[i]
-}
-
-func (p Points) Less(i, j int) bool {
-	return p[i][0].(int) < p[j][0].(int)
 }
