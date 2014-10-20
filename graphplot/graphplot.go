@@ -1,23 +1,32 @@
 package graphplot
 
-//package main
-
 import (
 	"code.google.com/p/plotinum/plot"
 	"code.google.com/p/plotinum/plotter"
 	"code.google.com/p/plotinum/plotutil"
+	"code.google.com/p/plotinum/vg"
+	"code.google.com/p/plotinum/vg/vgeps"
+	"code.google.com/p/plotinum/vg/vgimg"
+	"code.google.com/p/plotinum/vg/vgpdf"
+	"code.google.com/p/plotinum/vg/vgsvg"
+	"errors"
 	log "github.com/golang/glog"
 	d "github.com/trebogeer/timetrap/data"
 	"github.com/trebogeer/timetrap/util"
+	"io"
+	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 )
 
 const (
-	dateFormat = "HH:mm:ss MM/dd/yyyy"
+	def_width  = 12
+	def_height = 6
+	dateFormat = "15:04:05 01/02/2006" //"HH:mm:ss MM/dd/yyyy"
 )
 
-func DrawPlot(input map[string]interface{}) error {
+func DrawPlot(input map[string]interface{}, writer io.Writer) error {
 
 	p, err := plot.New()
 	if err != nil {
@@ -25,44 +34,29 @@ func DrawPlot(input map[string]interface{}) error {
 		return err
 		//panic(err)
 	}
-	log.Info("Created plot.")
+	log.V(2).Info("Created plot.")
 	name := util.AssertString(input["alias"], "N/A")
 	p.Title.Text = name
-	p.X.Label.Text = "X"
-	p.Y.Label.Text = "Y"
-	log.Info("Set name complete.")
+	//p.X.Label.Text = "X"
+	//p.Y.Label.Text = "Y"
+	log.V(2).Info("Set name complete.")
 	// Use a custom tick marker function that computes the default
 	// tick marks and re-labels the major ticks with dates
 	p.X.Tick.Marker = dateTicks
 	data := input["data"].([]map[string]interface{})
-	log.Info("Initialied data")
-	//lines := make([]interface{}, 2*len(data))
+	log.V(2).Info("Initialzied data")
 	for i := range data {
-		//  l := 2 * i
-		//lines[l] = data[i]["key"]
-		//lines[l + 1] =  makePoints(data[i]["values"].(d.Points))
 		err = plotutil.AddLinePoints(p, data[i]["key"], makePoints(data[i]["values"].(d.Points)))
 		if err != nil {
 			log.Error(err)
 		}
 	}
-	log.Info("Created points.")
-	/* for i:= range lines {
-	      log.Info(lines[i])
-	      plotutil.AddLinePoints(p, data)
-	    }
-		err = plotutil.AddLinePoints(p, lines)
-		if err != nil {
-	        log.Error(err)
-			return err
-		}*/
-	log.Info("Added points to plot.")
-
+	log.V(2).Info("Created points.")
 	// Save the plot to a PNG file.
-	if err := p.Save(10, 6, "/tmp/tt.png"); err != nil {
+	if err := save(p, def_width, def_height, writer); err != nil {
 		return err
 	}
-	log.Info("Saved to file.")
+	log.V(2).Info("Saved to file.")
 	return nil
 }
 
@@ -76,24 +70,24 @@ func makePoints(arr d.Points) plotter.XYs {
 	return pts
 }
 
-// CommaTicks computes the default tick marks, but inserts commas
-// into the labels for the major tick marks.
+// dateTicks computes date ticks in format HH:mm:ss MM/dd/yyyy.
 func dateTicks(min, max float64) []plot.Tick {
 	tks := plot.DefaultTicks(min, max)
-	log.Info("Format labels.")
+	log.V(2).Info("Format labels.")
 	for i, t := range tks {
 		if t.Label == "" { // Skip minor ticks, they are fine.
 			continue
 		}
 		tks[i].Label = formatLabel(t.Label)
 	}
-	log.Info("Format labels done.")
+	log.V(2).Info("Format labels done.")
 	return tks
 }
 
 func formatLabel(s string) string {
-	i, err := strconv.Atoi(s)
+	i, err := strconv.ParseFloat(s, 64)
 	if err != nil {
+		log.V(2).Info("Failed to convert " + s)
 		return s
 	}
 	i64 := int64(i)
@@ -102,6 +96,48 @@ func formatLabel(s string) string {
 
 	t := time.Unix(sec, nanos)
 	label := t.Format(dateFormat)
-	log.Info(label)
+	log.V(2).Info("Label : " + label)
 	return label
+}
+
+func save(p *plot.Plot, width, height float64, writer io.Writer) (err error) {
+	file := "asd.png"
+	w, h := vg.Inches(width), vg.Inches(height)
+	var c interface {
+		vg.Canvas
+		Size() (w, h vg.Length)
+		io.WriterTo
+	}
+	switch ext := strings.ToLower(filepath.Ext(file)); ext {
+
+	case ".eps":
+		c = vgeps.NewTitle(w, h, file)
+
+	case ".jpg", ".jpeg":
+		c = vgimg.JpegCanvas{Canvas: vgimg.New(w, h)}
+
+	case ".pdf":
+		c = vgpdf.New(w, h)
+
+	case ".png":
+		c = vgimg.PngCanvas{Canvas: vgimg.New(w, h)}
+
+	case ".svg":
+		c = vgsvg.New(w, h)
+
+	case ".tiff":
+		c = vgimg.TiffCanvas{Canvas: vgimg.New(w, h)}
+
+	default:
+		return errors.New("Unsupported file extension: " + ext)
+	}
+	p.Draw(plot.MakeDrawArea(c))
+
+	/* err := os.Create(file)
+	if err != nil {
+		return err
+	}
+	defer f.Close()*/
+	_, err = c.WriteTo(writer)
+	return err
 }

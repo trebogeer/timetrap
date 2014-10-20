@@ -8,8 +8,10 @@ import (
 	"github.com/trebogeer/timetrap/mongo"
 	"github.com/trebogeer/timetrap/simplify"
 	//	"sort"
+	"bytes"
 	"errors"
 	"time"
+	//    "strconv"
 )
 
 type (
@@ -40,7 +42,7 @@ type (
 const (
 	tback_c    = "600s"
 	keep_p     = 1200
-	dateFormat = "yyyy-MM-dd'T'HH:mm:ssz"
+	dateFormat = "2006-01-02T15:04:05MST"
 	split_p    = "12h"
 	def_x      = "ts"
 	def_y      = "lp"
@@ -86,12 +88,18 @@ func (this *TTController) GraphData(fn result) {
 
 func (this *TTController) GraphDataImage() {
 	this.GraphData(func(this *TTController, d map[string]interface{}) {
-		err := gp.DrawPlot(d)
+		var w bytes.Buffer
+		this.Ctx.Output.Header("Content-Type", "image/png")
+		err := gp.DrawPlot(d, &w)
+		log.V(1).Info("Draw.", w.Len())
 		if err != nil {
-			log.Error(err)
+			log.Error("Failed to write image to response writer.")
+			beego.Error(err)
+			this.Abort("500")
 		}
-		this.Data["json"] = make([]int, 1)
-		this.ServeJson()
+		this.Ctx.Output.Body(w.Bytes())
+		//this.Data["json"] = make([]int, 1)
+		//this.ServeJson()
 	})
 }
 
