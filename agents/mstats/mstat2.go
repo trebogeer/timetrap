@@ -5,9 +5,9 @@ import (
 	"flag"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
+    "github.com/golang/glog"
+    glogger "github.com/trebogeer/timetrap/glogger"
 	"io"
-	"log"
-	"os"
 	"os/exec"
 	"regexp"
 	"strconv"
@@ -25,8 +25,6 @@ var (
 	dbName    = flag.String("db", "midori", "MongoDB database to store metrics to.")
 	collName  = flag.String("c", "mstat", "MongoDB collection to store metrics to.")
 	cphost    = flag.Bool("cph", true, "Store each host's metrics to a separate collection.")
-	dbg       = flag.Bool("dbg", false, "Print more output during execution if true.")
-	logfile   = flag.String("logfile", os.TempDir()+string(os.PathSeparator)+"mstat.log", "Log file path.")
 	mongostat = flag.String("mongostat", "mongostat", "mongostat executable path.")
 	muname    = flag.String("muname", "DBMON", "Mongostat username.")
 	mpass     = flag.String("mpassword", "ch3ck1ng", "Mongostat password.")
@@ -37,14 +35,22 @@ var (
 
 func main() {
 
+    glogger := glogger.New()
+    mgo.SetLogger(glogger)
+
 	flag.Parse()
-	f, err := createLogFile(*logfile)
-	//    fmt.Println("Created log file.")
-	if err == nil {
-		log.SetOutput(f)
-		defer f.Close()
-	}
-	log.Println("Initialized logger.")
+
+	glog.V(1).Info("MongoDB Host: " + *host)
+	glog.V(1).Infof("MongoDB Port: %v", *port)
+	glog.V(1).Info("MongoDB User: " + *user)
+	reg, _ := regexp.Compile(".")
+	glog.V(1).Info("MongoDB Password: " + reg.ReplaceAllString(*pwd, "*"))
+	glog.V(1).Info("MongoDB Auth Database: " + *audb)
+	glog.V(1).Info("MongoDB Database: " + *dbName)
+	glog.V(1).Info("MongoDB Collection: " + *collName)
+	glog.V(1).Infof("Collection per host: %v", *cphost)
+
+
 	mdbDialInfo := &mgo.DialInfo{
 		Addrs:    []string{*host + ":" + strconv.Itoa(*port)},
 		Source:   *audb,
@@ -53,19 +59,9 @@ func main() {
 		Timeout:  5 * time.Second,
 	}
 
-	log.Println("MongoDB Host: " + *host)
-	log.Printf("MongoDB Port: %v", *port)
-	log.Println("MongoDB User: " + *user)
-	reg, _ := regexp.Compile(".")
-	log.Println("MongoDB Password: " + reg.ReplaceAllString(*pwd, "*"))
-	log.Println("MongoDB Auth Database: " + *audb)
-	log.Println("MongoDB Database: " + *dbName)
-	log.Println("MongoDB Collection: " + *collName)
-	log.Printf("Collection per host: %v", *cphost)
-	log.Printf("Debug: %v", *dbg)
 	session, err := mgo.DialWithInfo(mdbDialInfo)
 	if err != nil {
-		log.Panic(err)
+		glog.Fatal(err)
 	}
 	defer session.Close()
 	session.SetMode(mgo.Monotonic, true)
@@ -76,7 +72,7 @@ func main() {
 
 	stdout, cmd, err := runMongostat(*muname, *mpass, *hostport, *mauthdb, *interval, *mongostat)
 	if err != nil {
-		log.Fatal("Failed to start mongostat: ", err)
+		glog.Fatal("Failed to start mongostat: ", err)
 	}
 	defer stdout.Close()
 
@@ -123,26 +119,26 @@ func main() {
 					"|")[0]), "wq": toInt(strings.Split(m[14], "|")[1]), "ar": toInt(strings.Split(m[15],
 					"|")[0]), "aw": toInt(strings.Split(m[15], "|")[1]), "ni": m[16], "no": m[17], "cn": toInt(m[18]),
 				"s": m[19], "repl": m[20], "t": m[21], "ts": dt}
-			debug("Document: %v", doc)
+			glog.V(2).Infof("Document: %v", doc)
 
 			go func(doc bson.M, coll *mgo.Collection) {
 				_, dberr := coll.Upsert(bson.M{"_id": id}, bson.M{"$set": bson.M{sec_s: doc}})
 				if dberr != nil {
-					log.Println(dberr)
+					glog.Error(dberr)
 				}
 			}(doc, coll)
 		} else {
-			debug("Skipping line [%v] due to non-standard format:", line)
+			glog.V(1).Infof("Skipping line [%v] due to non-standard format:", line)
 		}
 		line, err = reader.ReadString('\n')
 	}
 	if err != io.EOF {
-		log.Println(err)
+		glog.Error(err)
 	}
 	if err = cmd.Wait(); err != nil {
-		log.Println(err)
+		glog.Error(err)
 	}
-	log.Println("Bye!")
+	glog.Info("Bye!")
 }
 
 func toInt(s string) int {
@@ -167,28 +163,6 @@ func mstatObjectId(host string, repl string, t time.Time) string {
 	c := t.Truncate(time.Duration(1) * time.Minute)
 	timeHex := strconv.FormatInt(c.UnixNano()/int64(time.Second), 16)
 	return timeHex + host + repl
-}
-
-func debug(t string, i ...interface{}) {
-	if *dbg {
-		log.Printf(t+"\n", i)
-	}
-
-}
-
-func createLogFile(logfile string) (*os.File, error) {
-	/*	if _, err := os.Stat(logfile); !os.IsNotExist(err) {
-			err = os.Rename(logfile, logfile+"."+time.Now().Format("2000-01-29T20-20-39.000"))
-			if err != nil {
-				return nil, err
-			}
-		}
-	*/
-	if f, err := os.OpenFile(logfile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666); err != nil {
-		return f, nil
-	} else {
-		return nil, err
-	}
 }
 
 func runMongostat(uname, pass, hostport, authDB, interval, mongostat string) (io.ReadCloser, *exec.Cmd, error) {

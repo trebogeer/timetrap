@@ -15,15 +15,15 @@ func New() *Glogger {
 }
 
 func (l *Glogger) Fatal(v ...interface{}) {
-	glog.Error(v)
+	glog.Fatal(v)
 }
 
 func (l *Glogger) Fatalf(format string, v ...interface{}) {
-	glog.Errorf(format, v)
+	glog.Fatalf(format, v)
 }
 
 func (l *Glogger) Fatalln(v ...interface{}) {
-	glog.Error(v)
+	glog.Fatalln(v)
 }
 
 func (l *Glogger) Flags() int {
@@ -55,11 +55,11 @@ func (l *Glogger) Print(v ...interface{}) {
 }
 
 func (l *Glogger) Printf(format string, v ...interface{}) {
-	glog.Info(format, v)
+	glog.Infof(format, v)
 }
 
 func (l *Glogger) Println(v ...interface{}) {
-	glog.Info(v)
+	glog.Infoln(v)
 }
 
 func (l *Glogger) SetFlags(flag int) {
