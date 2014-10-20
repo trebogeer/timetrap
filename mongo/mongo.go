@@ -2,8 +2,9 @@ package mongo
 
 import (
 	"errors"
-	"log"
-	"os"
+	"github.com/trebogeer/timetrap/glogger"
+	//	"os"
+	log "github.com/golang/glog"
 	"regexp"
 	"time"
 	//"reflect"
@@ -37,8 +38,6 @@ type (
 	*/
 )
 
-//type XY [2]interface{}
-//type Points []XY
 type round_time func(t time.Time) time.Time
 
 func Init(host, port, authdb, user, password string) error {
@@ -49,8 +48,8 @@ func Init(host, port, authdb, user, password string) error {
 
 	//    mgo.SetDebug(true)
 
-	var aLogger *log.Logger
-	aLogger = log.New(os.Stderr, "", log.LstdFlags)
+	var aLogger *glogger.Glogger
+	aLogger = glogger.New()
 	mgo.SetLogger(aLogger)
 
 	dialInfo := &mgo.DialInfo{
@@ -73,7 +72,7 @@ func Init(host, port, authdb, user, password string) error {
 
 	masterSession = session{dialInfo, ms}
 
-	log.Println("Mongo client is initialized.")
+	log.Info("Mongo client is initialized.")
 	return nil
 }
 
@@ -81,7 +80,7 @@ func Shutdown() {
 	if masterSession.ms != nil {
 		masterSession.ms.Close()
 	}
-	log.Println("MGO master session shutdown is complete.")
+	log.Info("MGO master session shutdown is complete.")
 }
 
 func GetGraphData(db, c, x, y string, from, to time.Time, labels []string) (error, map[string]Points) {
@@ -155,8 +154,7 @@ func GetKV(db, c, k string) string {
 	res := bson.M{}
 	err := coll.Find(bson.M{"_id": k}).Select(bson.M{"v": 1}).One(&res)
 	if err != nil {
-		log.Printf("Error retrieving value by key [%v].\n", k)
-		log.Println(err.Error())
+		log.V(1).Info("Error retrieving value by key ", k, err)
 		return "N/A"
 	}
 	if str, ok := res["v"].(string); ok {
