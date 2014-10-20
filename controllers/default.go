@@ -151,7 +151,7 @@ func getGraphData(db, x, y, split string, collections, labels []string, from, to
 							err, viss := simplify.Visvalingam(int(keep_per_slice), vis)
 							if err != nil {
 								viss = vis
-								log.Error("failed to simplify line.", err)
+								log.V(1).Info("Failed to simplify line. ", err)
 							}
 							l = len(viss)
 							vv := make(data.Points, l)
