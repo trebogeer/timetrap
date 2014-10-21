@@ -1,0 +1,8 @@
+#!/bin/bash
+
+
+ 
+#echo never > /sys/kernel/mm/transparent_hugepage/enabled
+
+$HOME/tokumx/bin/mongod --dbpath $HOME/tt-data/ --logpath $HOME/tt-data/log --fork
+$HOME/tokumx/bin/mongo localhost:27017/admin --eval='db.addUser("midori", "midori")'
