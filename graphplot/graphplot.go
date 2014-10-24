@@ -14,7 +14,6 @@ import (
 	d "github.com/trebogeer/timetrap/data"
 	"github.com/trebogeer/timetrap/util"
 	"io"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -26,7 +25,7 @@ const (
 	dateFormat = "15:04:05 01/02/2006" //"HH:mm:ss MM/dd/yyyy"
 )
 
-func DrawPlot(input map[string]interface{}, writer io.Writer) error {
+func DrawPlot(input map[string]interface{}, writer io.Writer, ft string) error {
 
 	p, err := plot.New()
 	if err != nil {
@@ -42,21 +41,22 @@ func DrawPlot(input map[string]interface{}, writer io.Writer) error {
 	log.V(2).Info("Set name complete.")
 	// Use a custom tick marker function that computes the default
 	// tick marks and re-labels the major ticks with dates
-	//	p.X.Tick.Marker = dateTicks
+	p.X.Tick.Marker = dateTicks
 	data := input["data"].([]map[string]interface{})
-	log.V(2).Info("Initialzied data")
 	for i := range data {
-		err = AddLinePoints(p, util.AssertString(data[i]["key"], ""), makePoints(data[i]["values"].(d.Points)), i)
+        points := makePoints(data[i]["values"].(d.Points))
+        log.V(2).Info("Points length: ", len(points))
+		err = AddLinePoints(p, util.AssertString(data[i]["key"], ""), points, i)
 		if err != nil {
 			log.Error(err)
 		}
 	}
 	log.V(2).Info("Created points.")
 	// Save the plot to a PNG file.
-	if err := save(p, def_width, def_height, writer); err != nil {
+	if err := save(p, def_width, def_height, writer, ft); err != nil {
 		return err
 	}
-	log.V(2).Info("Saved to file.")
+	log.V(2).Info("Done writing to output.")
 	return nil
 }
 
@@ -100,44 +100,38 @@ func formatLabel(s string) string {
 	return label
 }
 
-func save(p *plot.Plot, width, height float64, writer io.Writer) (err error) {
-	file := "asd.png"
+func save(p *plot.Plot, width, height float64, writer io.Writer, ft string) (err error) {
+	file := ft
 	w, h := vg.Inches(width), vg.Inches(height)
 	var c interface {
 		vg.Canvas
 		Size() (w, h vg.Length)
 		io.WriterTo
 	}
-	switch ext := strings.ToLower(filepath.Ext(file)); ext {
+	switch ext := strings.ToLower(file); ext {
 
-	case ".eps":
+	case "eps":
 		c = vgeps.NewTitle(w, h, file)
 
-	case ".jpg", ".jpeg":
+	case "jpg", "jpeg":
 		c = vgimg.JpegCanvas{Canvas: vgimg.New(w, h)}
 
-	case ".pdf":
+	case "pdf":
 		c = vgpdf.New(w, h)
 
-	case ".png":
+	case "png":
 		c = vgimg.PngCanvas{Canvas: vgimg.New(w, h)}
 
-	case ".svg":
+	case "svg":
 		c = vgsvg.New(w, h)
 
-	case ".tiff":
+	case "tiff":
 		c = vgimg.TiffCanvas{Canvas: vgimg.New(w, h)}
 
 	default:
 		return errors.New("Unsupported file extension: " + ext)
 	}
 	p.Draw(plot.MakeDrawArea(c))
-
-	/* err := os.Create(file)
-	if err != nil {
-		return err
-	}
-	defer f.Close()*/
 	_, err = c.WriteTo(writer)
 	return err
 }

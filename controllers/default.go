@@ -89,8 +89,20 @@ func (this *TTController) GraphData(fn result) {
 func (this *TTController) GraphDataImage() {
 	this.GraphData(func(this *TTController, d map[string]interface{}) {
 		var w bytes.Buffer
-		this.Ctx.Output.Header("Content-Type", "image/png")
-		err := gp.DrawPlot(d, &w)
+		ft := this.GetString("ft")
+		if len(ft) == 0 {
+			ft = this.Ctx.Input.Header("Accept")
+			if len(ft) == 0 {
+				ft = "png"
+			}
+		}
+
+		if ft == "pdf" {
+			this.Ctx.Output.Header("Content-Type", "application/pdf")
+		} else {
+			this.Ctx.Output.Header("Content-Type", "image/"+ft)
+		}
+		err := gp.DrawPlot(d, &w, ft)
 		log.V(1).Info("Draw.", w.Len())
 		if err != nil {
 			log.Error("Failed to write image to response writer.")
