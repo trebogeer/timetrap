@@ -3,10 +3,10 @@ package main
 import (
 	"bufio"
 	"flag"
+	"github.com/golang/glog"
+	glogger "github.com/trebogeer/timetrap/glogger"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
-    "github.com/golang/glog"
-    glogger "github.com/trebogeer/timetrap/glogger"
 	"io"
 	"os/exec"
 	"regexp"
@@ -35,8 +35,8 @@ var (
 
 func main() {
 
-    glogger := glogger.New()
-    mgo.SetLogger(glogger)
+	glogger := glogger.New()
+	mgo.SetLogger(glogger)
 
 	flag.Parse()
 
@@ -49,7 +49,6 @@ func main() {
 	glog.V(1).Info("MongoDB Database: " + *dbName)
 	glog.V(1).Info("MongoDB Collection: " + *collName)
 	glog.V(1).Infof("Collection per host: %v", *cphost)
-
 
 	mdbDialInfo := &mgo.DialInfo{
 		Addrs:    []string{*host + ":" + strconv.Itoa(*port)},

@@ -5,7 +5,6 @@ import (
 	"errors"
 	"math"
 	"sort"
-	//    "log"
 )
 
 type Point struct {

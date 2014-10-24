@@ -32,7 +32,6 @@ var (
 	dbName          = flag.String("db", "midori", "MongoDB database to store metrics to.")
 	collName        = flag.String("c", "mstat", "MongoDB collection to store metrics to.")
 	cphost          = flag.Bool("cph", true, "Store each host's metrics to a separate collection.")
-	file_path       = flag.String("fp", "/tmp/test", "Log file to scrape.")
 	yaml_rules_file = flag.String("rf", "rules.yaml", "Regular experession rules ")
 )
 
@@ -49,30 +48,26 @@ func main() {
 	log.V(1).Info("MongoDB Database: " + *dbName)
 	log.V(1).Info("MongoDB Collection: " + *collName)
 	log.V(1).Info("Collection per host: %v", *cphost)
-	log.V(1).Info("Log file: %v", *file_path)
 	log.V(1).Info("Rules yaml file path: %v", *yaml_rules_file)
 
 	// yaml rules processing
 	rules := make(map[interface{}]interface{})
 	yamlBytes, err := ioutil.ReadFile(*yaml_rules_file)
 	if err != nil {
-		log.Fatal("Error reading rules file:", err)
-		os.Exit(1)
+		log.Fatal("Error reading rules file: ", err)
 	}
 	err = yaml.Unmarshal(yamlBytes, &rules)
 	if err != nil {
-		log.Fatal("Error parsing rules file:", err)
-		os.Exit(1)
+		log.Fatal("Error parsing rules file: ", err)
 	}
 
-	log.Info("%v", rules)
+	log.V(2).Infof("%v", rules)
 	// tailing output
 
 	cmd := exec.Command("tail", "-F", *file_path)
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		log.Fatal("Error tailing file", err)
-		os.Exit(1)
 	}
 	if err := cmd.Start(); err != nil {
 		//log.Printf("Error executing command: %v %v", tail_path, *file_path)
@@ -103,7 +98,7 @@ func main() {
 	line, err := reader.ReadString('\n')
 	for err == nil {
 
-		log.Info(line)
+		log.V(2).Info(line)
 		/*	m := strings.Fields(stripStars.ReplaceAllString(line, ""))
 					if len(m) == 22 {
 						e12 := strings.Split(m[12], ":")

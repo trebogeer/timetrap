@@ -5,7 +5,12 @@ import (
 	"github.com/astaxie/beego"
 	"github.com/trebogeer/timetrap/mongo"
 	_ "github.com/trebogeer/timetrap/routers"
+	"os"
 	"runtime"
+)
+
+const (
+	vgfpath = "VGFONTPATH"
 )
 
 var (
@@ -19,6 +24,9 @@ var (
 )
 
 func main() {
+	if len(os.Getenv(vgfpath)) == 0 {
+		os.Setenv(vgfpath, "./static")
+	}
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
 	flag.Parse()
