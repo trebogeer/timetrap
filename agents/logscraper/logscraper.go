@@ -8,7 +8,7 @@ import (
 	//"gopkg.in/mgo.v2/bson"
 	"io"
 	"io/ioutil"
-	"os"
+	//	"os"
 	//"log"
 	//"os"
 	"os/exec"
@@ -32,13 +32,17 @@ var (
 	dbName          = flag.String("db", "midori", "MongoDB database to store metrics to.")
 	collName        = flag.String("c", "mstat", "MongoDB collection to store metrics to.")
 	cphost          = flag.Bool("cph", true, "Store each host's metrics to a separate collection.")
+	file_path       = flag.String("f", "", "File to scrape.")
 	yaml_rules_file = flag.String("rf", "rules.yaml", "Regular experession rules ")
 )
 
 func main() {
 
 	flag.Parse()
-
+	if len(*file_path) == 0 {
+		flag.PrintDefaults()
+		log.Fatal("File to scrape is not specified.")
+	}
 	log.V(1).Info("MongoDB Host: " + *host)
 	log.V(1).Infof("MongoDB Port: %v", *port)
 	log.V(1).Info("MongoDB User: " + *user)
