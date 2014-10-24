@@ -42,7 +42,7 @@ func DrawPlot(input map[string]interface{}, writer io.Writer) error {
 	log.V(2).Info("Set name complete.")
 	// Use a custom tick marker function that computes the default
 	// tick marks and re-labels the major ticks with dates
-	p.X.Tick.Marker = dateTicks
+	//	p.X.Tick.Marker = dateTicks
 	data := input["data"].([]map[string]interface{})
 	log.V(2).Info("Initialzied data")
 	for i := range data {
