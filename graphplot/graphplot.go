@@ -46,10 +46,10 @@ func DrawPlot(input map[string]interface{}, writer io.Writer) error {
 	data := input["data"].([]map[string]interface{})
 	log.V(2).Info("Initialzied data")
 	for i := range data {
-		err = plotutil.AddLinePoints(p, data[i]["key"], makePoints(data[i]["values"].(d.Points)))
-		if err != nil {
-			log.Error(err)
-		}
+			err = AddLinePoints(p, util.AssertString(data[i]["key"],""), makePoints(data[i]["values"].(d.Points)), i)
+			if err != nil {
+				log.Error(err)
+			}
 	}
 	log.V(2).Info("Created points.")
 	// Save the plot to a PNG file.
@@ -140,4 +140,23 @@ func save(p *plot.Plot, width, height float64, writer io.Writer) (err error) {
 	defer f.Close()*/
 	_, err = c.WriteTo(writer)
 	return err
+}
+
+func AddLinePoints(plt *plot.Plot, name string, points plotter.XYs, i int) error {
+
+			l, s, err := plotter.NewLinePoints(points)
+			if err != nil {
+				return err
+			}
+			l.Color = plotutil.Color(i)
+			l.Dashes = plotutil.Dashes(i)
+			s.Color = plotutil.Color(i)
+			s.Shape = plotutil.Shape(i)
+
+
+
+
+	plt.Add(l, s)
+	plt.Legend.Add(name, l, s)
+	return nil
 }
