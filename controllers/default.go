@@ -292,7 +292,12 @@ func (this *TTController) parseQueryParams() (ReqParams, error) {
 		qp.split = split_p
 	}
 
-	tf := this.GetString("from")
+	qp.tback = this.GetString("tback")
+	if len(qp.tback) == 0 {
+		qp.tback = tback_c
+	}
+
+    tf := this.GetString("from")
 	tt := this.GetString("to")
 
 	var f time.Time
@@ -326,10 +331,7 @@ func (this *TTController) parseQueryParams() (ReqParams, error) {
 	if len(qp.y) == 0 {
 		qp.y = def_y
 	}
-	qp.tback = this.GetString("tback")
-	if len(qp.tback) == 0 {
-		qp.tback = tback_c
-	}
+
 	qp.labelName = this.GetString("labelName")
 	qp.keepPoints, err = this.GetInt("keepPoints")
 	if err != nil {

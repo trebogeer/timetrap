@@ -26,7 +26,7 @@ const (
 )
 
 func DrawPlot(input map[string]interface{}, writer io.Writer, ft string) error {
-
+    log.V(2).Infof("Input data: %v", input)
 	p, err := plot.New()
 	if err != nil {
 		log.Error("Failed to initialize plot.", err)
