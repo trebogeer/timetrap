@@ -99,6 +99,8 @@ func (this *TTController) GraphDataImage() {
 
 		if ft == "pdf" {
 			this.Ctx.Output.Header("Content-Type", "application/pdf")
+        } else if ft == "svg" {
+            this.Ctx.Output.Header("Content-Type", "image/svg+xml")
 		} else {
 			this.Ctx.Output.Header("Content-Type", "image/"+ft)
 		}

@@ -33,6 +33,7 @@ func DrawPlot(input map[string]interface{}, writer io.Writer, ft string) error {
 		return err
 		//panic(err)
 	}
+    p.Add(plotter.NewGrid())
 	log.V(2).Info("Created plot.")
 	name := util.AssertString(input["alias"], "N/A")
 	p.Title.Text = name
