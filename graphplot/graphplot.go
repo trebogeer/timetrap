@@ -47,7 +47,8 @@ func DrawPlot(input map[string]interface{}, writer io.Writer, ft string) error {
 	for i := range data {
         points := makePoints(data[i]["values"].(d.Points))
         log.V(2).Info("Points length: ", len(points))
-		err = AddLinePoints(p, util.AssertString(data[i]["key"], ""), points, i)
+		err = AddLines(p, util.AssertString(data[i]["key"], ""), points, i)
+		//err = AddLinePoints(p, util.AssertString(data[i]["key"], ""), points, i)
 		if err != nil {
 			log.Error(err)
 		}
@@ -151,4 +152,20 @@ func AddLinePoints(plt *plot.Plot, name string, points plotter.XYs, i int) error
 	plt.Add(l, s)
 	plt.Legend.Add(name, l, s)
 	return nil
+}
+
+func AddLines(plt *plot.Plot, name string, points plotter.XYs, i int) error {
+
+    l, err := plotter.NewLine(points)
+    if err != nil {
+       return err
+    }
+
+    l.LineStyle.Color = plotutil.Color(i)
+    //l.Dashes = plotutil.Dashes(i)
+    l.LineStyle.Width = vg.Points(1)
+
+    plt.Add(l)
+    plt.Legend.Add(name, l)
+    return nil
 }
