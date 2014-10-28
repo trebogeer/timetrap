@@ -7,6 +7,7 @@ import (
 	gp "github.com/trebogeer/timetrap/graphplot"
 	"github.com/trebogeer/timetrap/mongo"
 	"github.com/trebogeer/timetrap/simplify"
+	"github.com/trebogeer/timetrap/util"
 	//	"sort"
 	"bytes"
 	"errors"
@@ -159,7 +160,7 @@ func getGraphData(db, x, y, split string, collections, labels []string, from, to
 							l := len(v)
 							vis := make([]simplify.Point, l)
 							for s := 0; s < l; s++ {
-								vis[s] = simplify.Point{float64(v[s][0].(int64)), getFloat64(v[s][1])}
+								vis[s] = simplify.Point{util.AssertFloat64(v[s][0], 0), util.AssertFloat64(v[s][1], 0)}
 							}
 
 							err, viss := simplify.Visvalingam(int(keep_per_slice), vis)
@@ -198,53 +199,22 @@ func getGraphData(db, x, y, split string, collections, labels []string, from, to
 		if len(v) > 1 {
 			i := 0
 			j := len(v) - 1
-			i_b := getInt64T(v[i][0]) < f_millis
-			j_b := getInt64T(v[j][0]) >= t_millis
+			i_b := util.AssertInt64(v[i][0], 0) < f_millis
+			j_b := util.AssertInt64(v[j][0], 0) >= t_millis
 			for i < j && (i_b || j_b) {
 				if i_b {
 					i = i + 1
-					i_b = getInt64T(v[i][0]) < f_millis
+					i_b = util.AssertInt64(v[i][0], 0) < f_millis
 				}
 				if j_b {
 					j = j - 1
-					j_b = getInt64T(v[j][0]) >= t_millis
+					j_b = util.AssertInt64(v[j][0], 0) >= t_millis
 				}
 			}
 			f_res[k] = v[i:j]
 		}
 	}
 	return f_res
-}
-
-func getFloat64(t interface{}) float64 {
-	switch t_ := t.(type) {
-	case int:
-		return float64(t.(int))
-	case float64:
-		return t.(float64)
-	case int64:
-		return float64(t.(int64))
-	case int32:
-		return float64(t.(int32))
-	case float32:
-		return float64(t.(float32))
-	default:
-		log.Errorf("Type is unsupported. %v is of type %v.", t, t_)
-		return 0
-
-	}
-}
-
-func getInt64T(t interface{}) int64 {
-	switch t_ := t.(type) {
-	case int:
-		return int64(t.(int))
-	case int64:
-		return t.(int64)
-	default:
-		log.Errorf("Type is unsupported. %v is of type %v.", t, t_)
-		return 0
-	}
 }
 
 func mergeMaps(m *map[string]data.Points, ch *chan map[string]data.Points, ch_cnt int) {
