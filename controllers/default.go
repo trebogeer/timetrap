@@ -100,12 +100,23 @@ func (this *TTController) GraphDataImage() {
 
 		if ft == "pdf" {
 			this.Ctx.Output.Header("Content-Type", "application/pdf")
-        } else if ft == "svg" {
-            this.Ctx.Output.Header("Content-Type", "image/svg+xml")
+		} else if ft == "svg" {
+			this.Ctx.Output.Header("Content-Type", "image/svg+xml")
 		} else {
 			this.Ctx.Output.Header("Content-Type", "image/"+ft)
 		}
-		err := gp.DrawPlot(d, &w, ft)
+
+		width, err := this.GetFloat("w")
+		if err != nil {
+			width = 0
+		}
+
+		height, err := this.GetFloat("h")
+		if err != nil {
+			height = 0
+		}
+
+		err = gp.DrawPlot(d, &w, ft, width, height)
 		log.V(1).Info("Draw.", w.Len())
 		if err != nil {
 			log.Error("Failed to write image to response writer.")
@@ -269,7 +280,7 @@ func (this *TTController) parseQueryParams() (ReqParams, error) {
 		qp.tback = tback_c
 	}
 
-    tf := this.GetString("from")
+	tf := this.GetString("from")
 	tt := this.GetString("to")
 
 	var f time.Time

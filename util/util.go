@@ -26,15 +26,14 @@ func AssertFloat64(i interface{}, def float64) float64 {
 	}
 }
 
-
 // TODO expand
 func AssertInt64(i interface{}, def int64) int64 {
-    switch i.(type) {
-    case int:
-        return int64(i.(int))
-    case int64:
-        return i.(int64)
-    default:
-        return def
-    }
+	switch i.(type) {
+	case int:
+		return int64(i.(int))
+	case int64:
+		return i.(int64)
+	default:
+		return def
+	}
 }

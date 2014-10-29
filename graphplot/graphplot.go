@@ -25,15 +25,15 @@ const (
 	dateFormat = "15:04:05 01/02/2006" //"HH:mm:ss MM/dd/yyyy"
 )
 
-func DrawPlot(input map[string]interface{}, writer io.Writer, ft string) error {
-    log.V(2).Infof("Input data: %v", input)
+func DrawPlot(input map[string]interface{}, writer io.Writer, ft string, w, h float64) error {
+	log.V(2).Infof("Input data: %v", input)
 	p, err := plot.New()
 	if err != nil {
 		log.Error("Failed to initialize plot.", err)
 		return err
 		//panic(err)
 	}
-    p.Add(plotter.NewGrid())
+	p.Add(plotter.NewGrid())
 	log.V(2).Info("Created plot.")
 	name := util.AssertString(input["alias"], "N/A")
 	p.Title.Text = name
@@ -45,8 +45,8 @@ func DrawPlot(input map[string]interface{}, writer io.Writer, ft string) error {
 	p.X.Tick.Marker = dateTicks
 	data := input["data"].([]map[string]interface{})
 	for i := range data {
-        points := makePoints(data[i]["values"].(d.Points))
-        log.V(2).Info("Points length: ", len(points))
+		points := makePoints(data[i]["values"].(d.Points))
+		log.V(2).Info("Points length: ", len(points))
 		err = AddLines(p, util.AssertString(data[i]["key"], ""), points, i)
 		//err = AddLinePoints(p, util.AssertString(data[i]["key"], ""), points, i)
 		if err != nil {
@@ -54,8 +54,16 @@ func DrawPlot(input map[string]interface{}, writer io.Writer, ft string) error {
 		}
 	}
 	log.V(2).Info("Created points.")
-	// Save the plot to a PNG file.
-	if err := save(p, def_width, def_height, writer, ft); err != nil {
+	if w <= 0 {
+		w = def_width
+	}
+
+	if h <= 0 {
+		h = def_height
+	}
+	// write out
+
+	if err := save(p, w, h, writer, ft); err != nil {
 		return err
 	}
 	log.V(2).Info("Done writing to output.")
@@ -156,16 +164,16 @@ func AddLinePoints(plt *plot.Plot, name string, points plotter.XYs, i int) error
 
 func AddLines(plt *plot.Plot, name string, points plotter.XYs, i int) error {
 
-    l, err := plotter.NewLine(points)
-    if err != nil {
-       return err
-    }
+	l, err := plotter.NewLine(points)
+	if err != nil {
+		return err
+	}
 
-    l.LineStyle.Color = plotutil.Color(i)
-    //l.Dashes = plotutil.Dashes(i)
-    l.LineStyle.Width = vg.Points(1)
+	l.LineStyle.Color = plotutil.Color(i)
+	//l.Dashes = plotutil.Dashes(i)
+	l.LineStyle.Width = vg.Points(1)
 
-    plt.Add(l)
-    plt.Legend.Add(name, l)
-    return nil
+	plt.Add(l)
+	plt.Legend.Add(name, l)
+	return nil
 }
