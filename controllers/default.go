@@ -116,7 +116,13 @@ func (this *TTController) GraphDataImage() {
 			height = 0
 		}
 
-		err = gp.DrawPlot(d, &w, ft, width, height)
+        showLegend, err := this.GetBool("shl")
+        if err != nil {
+           showLegend = true
+        }
+
+
+		err = gp.DrawPlot(d, &w, ft, width, height, showLegend)
 		log.V(1).Info("Draw.", w.Len())
 		if err != nil {
 			log.Error("Failed to write image to response writer.")
@@ -227,7 +233,8 @@ func getGraphData(db, x, y, split string, collections, labels []string, from, to
 	}
 	return f_res
 }
-
+// TODO merge properly preserving point order. Look at first elements of
+// point arrays.
 func mergeMaps(m *map[string]data.Points, ch *chan map[string]data.Points, ch_cnt int) {
 	mm := *m
 

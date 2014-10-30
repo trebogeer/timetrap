@@ -25,7 +25,7 @@ const (
 	dateFormat = "15:04:05 01/02/2006" //"HH:mm:ss MM/dd/yyyy"
 )
 
-func DrawPlot(input map[string]interface{}, writer io.Writer, ft string, w, h float64) error {
+func DrawPlot(input map[string]interface{}, writer io.Writer, ft string, w, h float64, showLegend bool) error {
 	log.V(2).Infof("Input data: %v", input)
 	p, err := plot.New()
 	if err != nil {
@@ -47,7 +47,7 @@ func DrawPlot(input map[string]interface{}, writer io.Writer, ft string, w, h fl
 	for i := range data {
 		points := makePoints(data[i]["values"].(d.Points))
 		log.V(2).Info("Points length: ", len(points))
-		err = AddLines(p, util.AssertString(data[i]["key"], ""), points, i)
+		err = AddLines(p, util.AssertString(data[i]["key"], ""), points, i, showLegend)
 		//err = AddLinePoints(p, util.AssertString(data[i]["key"], ""), points, i)
 		if err != nil {
 			log.Error(err)
@@ -146,7 +146,7 @@ func save(p *plot.Plot, width, height float64, writer io.Writer, ft string) (err
 	return err
 }
 
-func AddLinePoints(plt *plot.Plot, name string, points plotter.XYs, i int) error {
+func AddLinePoints(plt *plot.Plot, name string, points plotter.XYs, i int, showLegend bool) error {
 
 	l, s, err := plotter.NewLinePoints(points)
 	if err != nil {
@@ -158,11 +158,13 @@ func AddLinePoints(plt *plot.Plot, name string, points plotter.XYs, i int) error
 	s.Shape = plotutil.Shape(i)
 
 	plt.Add(l, s)
-	plt.Legend.Add(name, l, s)
+    if showLegend {
+	    plt.Legend.Add(name, l, s)
+    }
 	return nil
 }
 
-func AddLines(plt *plot.Plot, name string, points plotter.XYs, i int) error {
+func AddLines(plt *plot.Plot, name string, points plotter.XYs, i int, showLegend bool) error {
 
 	l, err := plotter.NewLine(points)
 	if err != nil {
@@ -174,6 +176,8 @@ func AddLines(plt *plot.Plot, name string, points plotter.XYs, i int) error {
 	l.LineStyle.Width = vg.Points(1)
 
 	plt.Add(l)
-	plt.Legend.Add(name, l)
+    if showLegend {
+	    plt.Legend.Add(name, l)
+    }
 	return nil
 }
