@@ -54,7 +54,7 @@ func (spa SortPointArrays) Len() int      { return len(spa) }
 func (spa SortPointArrays) Swap(i, j int) { spa[i], spa[j] = spa[j], spa[i] }
 func (spa SortPointArrays) Less(i, j int) bool {
 	if len(spa[i]) > 0 && len(spa[j]) > 0 {
-		return spa[i][0].X().(int) > spa[j][0].X().(int)
+		return spa[i][0].X().(int) < spa[j][0].X().(int)
 	} else {
 		return false
 	}
@@ -248,23 +248,27 @@ func getGraphData(db, x, y, split string, collections, labels []string, from, to
 // point arrays assuming they are sorted already.
 func mergeMaps(m *map[string]data.Points, ch *chan map[string]data.Points, ch_cnt int) {
 	mm := *m
-	var mm_ map[string]SortPointArrays
+	mm_ := make(map[string]SortPointArrays)
 	for i := 0; i < ch_cnt; i++ {
 		m_ := <-*ch
 		for k, v := range m_ {
 			if val, ok := mm_[k]; ok {
 				mm_[k] = append(val, v)
+				log.V(2).Infof("M[K] %v", mm_[k])
 			} else {
-				a := make(SortPointArrays, 1)
-				mm_[k] = append(a, v)
+				a := SortPointArrays([]data.Points{v})
+				mm_[k] = a
+				log.V(2).Infof("M[1] %v", mm_[k])
 			}
 		}
 	}
+
+	log.V(2).Infof("Merge: %v", mm_)
+
 	for k, v := range mm_ {
 		var arr data.Points
 		if len(v) > 0 {
 			sort.Sort(v)
-			var arr data.Points
 			for i := 0; i < len(v); i++ {
 				arr = append(arr, v[i]...)
 			}
