@@ -1,6 +1,8 @@
 package controllers
 
 import (
+	"bytes"
+	"errors"
 	"github.com/astaxie/beego"
 	log "github.com/golang/glog"
 	"github.com/trebogeer/timetrap/data"
@@ -8,9 +10,7 @@ import (
 	"github.com/trebogeer/timetrap/mongo"
 	"github.com/trebogeer/timetrap/simplify"
 	"github.com/trebogeer/timetrap/util"
-	//	"sort"
-	"bytes"
-	"errors"
+	"sort"
 	"time"
 	//    "strconv"
 )
@@ -37,7 +37,8 @@ type (
 		keepPoints int64
 	}
 
-	result func(*TTController, map[string]interface{})
+	result          func(*TTController, map[string]interface{})
+	SortPointArrays []data.Points
 )
 
 const (
@@ -48,6 +49,16 @@ const (
 	def_x      = "ts"
 	def_y      = "lp"
 )
+
+func (spa SortPointArrays) Len() int      { return len(spa) }
+func (spa SortPointArrays) Swap(i, j int) { spa[i], spa[j] = spa[j], spa[i] }
+func (spa SortPointArrays) Less(i, j int) bool {
+	if len(spa[i]) > 0 && len(spa[j]) > 0 {
+		return spa[i][0].X().(int) > spa[j][0].X().(int)
+	} else {
+		return false
+	}
+}
 
 func (this *MainController) Get() {
 	this.Data["Website"] = "timetrap.io"
@@ -116,11 +127,10 @@ func (this *TTController) GraphDataImage() {
 			height = 0
 		}
 
-        showLegend, err := this.GetBool("shl")
-        if err != nil {
-           showLegend = true
-        }
-
+		showLegend, err := this.GetBool("shl")
+		if err != nil {
+			showLegend = true
+		}
 
 		err = gp.DrawPlot(d, &w, ft, width, height, showLegend)
 		log.V(1).Info("Draw.", w.Len())
@@ -233,20 +243,33 @@ func getGraphData(db, x, y, split string, collections, labels []string, from, to
 	}
 	return f_res
 }
-// TODO merge properly preserving point order. Look at first elements of
-// point arrays.
+
+// merge preserving point order. Looking at first elements of
+// point arrays assuming they are sorted already.
 func mergeMaps(m *map[string]data.Points, ch *chan map[string]data.Points, ch_cnt int) {
 	mm := *m
-
+	var mm_ map[string]SortPointArrays
 	for i := 0; i < ch_cnt; i++ {
 		m_ := <-*ch
 		for k, v := range m_ {
-			if val, ok := mm[k]; ok {
-				mm[k] = append(val, v...)
+			if val, ok := mm_[k]; ok {
+				mm_[k] = append(val, v)
 			} else {
-				mm[k] = v
+				a := make(SortPointArrays, 1)
+				mm_[k] = append(a, v)
 			}
 		}
+	}
+	for k, v := range mm_ {
+		var arr data.Points
+		if len(v) > 0 {
+			sort.Sort(v)
+			var arr data.Points
+			for i := 0; i < len(v); i++ {
+				arr = append(arr, v[i]...)
+			}
+		}
+		mm[k] = arr
 	}
 }
 
