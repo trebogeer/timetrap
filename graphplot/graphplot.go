@@ -158,9 +158,9 @@ func AddLinePoints(plt *plot.Plot, name string, points plotter.XYs, i int, showL
 	s.Shape = plotutil.Shape(i)
 
 	plt.Add(l, s)
-    if showLegend {
-	    plt.Legend.Add(name, l, s)
-    }
+	if showLegend {
+		plt.Legend.Add(name, l, s)
+	}
 	return nil
 }
 
@@ -176,8 +176,8 @@ func AddLines(plt *plot.Plot, name string, points plotter.XYs, i int, showLegend
 	l.LineStyle.Width = vg.Points(1)
 
 	plt.Add(l)
-    if showLegend {
-	    plt.Legend.Add(name, l)
-    }
+	if showLegend {
+		plt.Legend.Add(name, l)
+	}
 	return nil
 }
